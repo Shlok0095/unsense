@@ -193,5 +193,5 @@ export function formatSearchContext(searchData) {
 
 ${lines.join("\n\n")}
 
-[Cite sources using short markdown links only — e.g. [wikipedia.org](url) or [1](url). Never paste raw long URLs. List all used links under ## Sources & Further Reading as numbered short links.]`;
+[Cite sources using clickable markdown links with real URLs — e.g. [wikipedia.org](https://...) or [1 · site.com](https://...). Never use placeholder URLs like "full-url". List all used links under ## Sources & Further Reading.]`;
 }

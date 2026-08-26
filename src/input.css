@@ -271,9 +271,15 @@
     @apply bg-transparent p-0;
   }
 
-  .msg-assistant a {
-    @apply text-neon underline decoration-neon/40 underline-offset-2 hover:text-neonDim;
+  .msg-assistant a,
+  .citation-link {
+    @apply cursor-pointer text-neon underline decoration-neon/40 underline-offset-2 hover:text-neonDim;
     word-break: break-word;
+    pointer-events: auto;
+  }
+
+  .citation-link {
+    @apply font-medium;
   }
 
   .msg-badge {
@@ -289,7 +295,9 @@
   }
 
   .source-link {
-    @apply rounded-md border border-neon/25 bg-neon/5 px-3 py-1.5 text-sm text-neon no-underline transition hover:border-neon/50 hover:bg-neon/10;
+    @apply cursor-pointer rounded-md border border-neon/25 bg-neon/5 px-3 py-1.5 text-sm text-neon no-underline transition hover:border-neon/50 hover:bg-neon/10;
+    pointer-events: auto;
+    touch-action: manipulation;
   }
 
   .composer {

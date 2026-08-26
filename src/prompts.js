@@ -25,10 +25,10 @@ Concrete, realistic examples or use cases. Expand each example enough to be genu
 5–8 bullet points capturing the most important facts, implications, and practical notes.
 
 ## Sources & Further Reading
-Numbered short markdown links only — never raw URLs. Format each line as:
-- [1] [site.com](full-url)
-- [2] [docs.example.com](full-url)
-Use the domain or a short site name as the link text. If web search results were provided, synthesize them into the answer and cite every source you used.
+One clickable markdown link per source — use the real URL from search results, never placeholders:
+- [1 · site.com](https://actual-url-here)
+- [2 · docs.example.com](https://actual-url-here)
+Every source must be a proper markdown link with a working https URL.
 
 Rules:
 - Prioritize depth and completeness over brevity. If you have room in the token budget, use it to add value.

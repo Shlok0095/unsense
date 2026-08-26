@@ -1,4 +1,10 @@
-import { linkifyBareUrls, shortLinkLabel } from "./linkUtils.js";
+import {
+  linkifyBareUrls,
+  linkifySearchCitations,
+  repairBrokenSourceLinks,
+  shortLinkLabel,
+  wireCitationLinks,
+} from "./linkUtils.js";
 import {
   clearActiveSession,
   createSession,
@@ -259,7 +265,7 @@ function configureMarked() {
   }
 }
 
-function shortenLinksInHtml(html) {
+function shortenLinksInHtml(html, searchResults = []) {
   const doc = new DOMParser().parseFromString(html, "text/html");
   doc.querySelectorAll("a").forEach((anchor) => {
     const href = anchor.getAttribute("href");
@@ -270,20 +276,25 @@ function shortenLinksInHtml(html) {
       anchor.textContent = shortLinkLabel(href, text);
     }
   });
-  return doc.body.innerHTML;
+  let output = doc.body.innerHTML;
+  output = repairBrokenSourceLinks(output, searchResults);
+  output = wireCitationLinks(output, searchResults);
+  return output;
 }
 
-function renderMarkdown(text) {
+function renderMarkdown(text, searchResults = []) {
   configureMarked();
-  const prepared = linkifyBareUrls(text);
+  let prepared = linkifyBareUrls(text);
+  prepared = linkifySearchCitations(prepared, searchResults);
   if (window.marked) {
-    return shortenLinksInHtml(window.marked.parse(prepared));
+    return shortenLinksInHtml(window.marked.parse(prepared), searchResults);
   }
   return prepared.replace(/\n/g, "<br>");
 }
 
 function createSourceLinks(results = []) {
-  if (!results.length) return null;
+  const usable = results.filter((item) => item?.url);
+  if (!usable.length) return null;
 
   const row = document.createElement("div");
   row.className = "source-links";
@@ -293,7 +304,7 @@ function createSourceLinks(results = []) {
   label.textContent = "sources:";
   row.appendChild(label);
 
-  for (const item of results) {
+  for (const item of usable) {
     const link = document.createElement("a");
     link.className = "source-link";
     link.href = item.url;
@@ -322,7 +333,7 @@ function createAssistantMessage(content, meta = null) {
   wrap.className = "msg-assistant-wrap";
   const body = document.createElement("div");
   body.className = "msg-assistant";
-  body.innerHTML = renderMarkdown(content);
+  body.innerHTML = renderMarkdown(content, meta?.webSearch?.results || []);
 
   const sourceLinks = createSourceLinks(meta?.webSearch?.results);
   if (sourceLinks) {
