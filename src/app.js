@@ -21,8 +21,10 @@ export function createApp() {
   for (const [route, handler] of api.post) {
     app.post(`/api${route}`, handler);
   }
-  for (const [route, handler] of api.delete) {
-    app.delete(`/api${route}`, handler);
+  if (api.delete) {
+    for (const [route, handler] of api.delete) {
+      app.delete(`/api${route}`, handler);
+    }
   }
 
   app.get("/", (_req, res) => {

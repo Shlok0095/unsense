@@ -1,7 +1,11 @@
 {
   "version": 2,
-  "buildCommand": "npm run build:css",
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/api" }
-  ]
+  "installCommand": "npm install && npm run build:css",
+  "framework": null,
+  "functions": {
+    "api/**/*.js": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  }
 }
