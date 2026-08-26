@@ -1,5 +1,6 @@
 import { getToken } from "../config.js";
 import { runChat } from "../agent.js";
+import { toUserFacingApiError } from "../errors.js";
 
 export async function handleChat(req, res) {
   if (req.method !== "POST") {
@@ -56,8 +57,8 @@ export async function handleChat(req, res) {
     });
   } catch (error) {
     const status = error.status || 502;
-    const message = error.message || "Failed to reach Hugging Face router.";
-    console.error("[chat]", status, message, error.details || "");
+    const message = toUserFacingApiError(error.message, status);
+    console.error("[chat]", status, error.message, error.details || "");
     return res.status(status).json({ error: message });
   }
 }
