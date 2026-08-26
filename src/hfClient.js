@@ -4,7 +4,7 @@ export const FALLBACK_MODEL =
   "NousResearch/Hermes-3-Llama-3.1-70B:featherless-ai";
 
 const HF_BASE_URL = "https://router.huggingface.co/v1";
-export const DEFAULT_MAX_OUTPUT_TOKENS = 4096;
+export const DEFAULT_MAX_OUTPUT_TOKENS = 8192;
 
 const MODEL_CONFIG = {
   [PRIMARY_MODEL]: { maxOutputTokens: DEFAULT_MAX_OUTPUT_TOKENS },
@@ -131,7 +131,7 @@ export async function chatCompletionWithFallback({
   token,
   messages,
   max_tokens = DEFAULT_MAX_OUTPUT_TOKENS,
-  temperature = 0.65,
+  temperature = 0.75,
 }) {
   try {
     return await chatCompletion({

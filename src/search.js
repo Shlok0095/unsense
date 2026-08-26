@@ -8,7 +8,7 @@ import { enrichSearchResults, shortLinkLabel } from "./linkUtils.js";
 const DDG_API = "https://api.duckduckgo.com/";
 const DDG_HTML = "https://html.duckduckgo.com/html/";
 const PAGE_FETCH_TIMEOUT_MS = 5000;
-const MAX_PAGE_EXCERPT_CHARS = 1200;
+const MAX_PAGE_EXCERPT_CHARS = 2000;
 const MAX_PAGES_TO_FETCH = 2;
 
 async function fetchInstantAnswers(query) {

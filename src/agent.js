@@ -2,7 +2,7 @@ import { SYSTEM_PROMPT, CONTEXT_WINDOW_MESSAGES } from "./prompts.js";
 import { extractSearchQuery } from "./searchTriggers.js";
 import { shouldRunWebSearch } from "./searchDecision.js";
 import { searchWeb, formatSearchContext } from "./search.js";
-import { chatCompletionWithFallback } from "./hfClient.js";
+import { chatCompletionWithFallback, DEFAULT_MAX_OUTPUT_TOKENS } from "./hfClient.js";
 
 export function buildApiMessages(history, { searchContext = null } = {}) {
   const windowed = history.slice(-CONTEXT_WINDOW_MESSAGES);
@@ -30,7 +30,8 @@ export async function runChat({
   token,
   userMessage,
   history,
-  temperature = 0.65,
+  temperature = 0.75,
+  max_tokens = DEFAULT_MAX_OUTPUT_TOKENS,
 }) {
   let searchMeta = null;
   let searchContext = null;
@@ -53,6 +54,7 @@ export async function runChat({
     token,
     messages,
     temperature,
+    max_tokens,
   });
 
   return {

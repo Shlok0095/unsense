@@ -4,8 +4,8 @@
 
 @layer base {
   html {
-    /* Was 118% — scaled every rem-based Tailwind size up and made the UI look zoomed in. */
-    font-size: 100%;
+    /* Slightly below 100% so more UI fits on screen (zoomed-out feel). */
+    font-size: 88%;
   }
 
   body {
@@ -194,7 +194,7 @@
   }
 
   .msg-assistant {
-    @apply max-w-none text-base leading-8 text-slate-200;
+    @apply max-w-none text-[1.0625rem] leading-8 text-slate-200;
   }
 
   .msg-assistant h2 {
