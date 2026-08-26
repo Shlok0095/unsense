@@ -258,6 +258,22 @@
     @apply shrink-0 border-t border-neon/15 bg-panel/90 px-5 py-5 backdrop-blur-md md:px-10;
   }
 
+  .attachment-list {
+    @apply mx-auto mb-3 flex max-w-4xl flex-wrap gap-2;
+  }
+
+  .attachment-chip {
+    @apply flex max-w-full items-center gap-2 rounded-lg border border-neon/25 bg-neon/5 px-3 py-2 text-sm text-neon;
+  }
+
+  .attachment-chip-label {
+    @apply truncate;
+  }
+
+  .attachment-chip-remove {
+    @apply text-lg leading-none text-slate-400 transition hover:text-danger;
+  }
+
   .composer-box {
     @apply mx-auto flex max-w-4xl items-end gap-3 rounded-xl border border-neon/30 bg-void/80 p-3 pl-5 shadow-neon focus-within:border-neon/60;
   }

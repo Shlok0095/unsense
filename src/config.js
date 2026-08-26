@@ -11,8 +11,16 @@ export function getToken() {
   return process.env.HF_TOKEN || "";
 }
 
+export function getNvidiaKey() {
+  return process.env.NVIDIA_API_KEY || "";
+}
+
 export function hasToken() {
   return Boolean(getToken());
+}
+
+export function hasNvidiaKey() {
+  return Boolean(getNvidiaKey());
 }
 
 export function getPort() {

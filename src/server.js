@@ -7,7 +7,7 @@ const PORT = getPort();
 
 const server = app.listen(PORT, async () => {
   const url = `http://localhost:${PORT}`;
-  console.log(`uncensored.chat running at ${url}`);
+  console.log(`unsensoredgpt running at ${url}`);
   if (!hasToken()) {
     console.warn("HF_TOKEN is not set — add it to .env for local dev");
   }

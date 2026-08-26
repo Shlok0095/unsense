@@ -6,8 +6,9 @@ Uncensored chat web app using Hugging Face Inference (Featherless).
 
 1. Push this repo to GitHub
 2. Import the project in [Vercel](https://vercel.com)
-3. Add environment variable:
+3. Add environment variables:
    - `HF_TOKEN` = your Hugging Face access token
+   - `NVIDIA_API_KEY` = your NVIDIA API key (for file/image extraction)
 4. Deploy
 
 ## Local development
@@ -34,4 +35,5 @@ Open `http://localhost:3000`
 | Variable   | Required | Description              |
 |-----------|----------|--------------------------|
 | `HF_TOKEN` | Yes      | Hugging Face API token   |
+| `NVIDIA_API_KEY` | Yes (for uploads) | NVIDIA API key for document/image text extraction (`nvidia/nemotron-nano-12b-v2-vl`) |
 | `PORT`     | No       | Local dev port (default 3000) |

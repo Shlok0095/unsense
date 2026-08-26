@@ -22,11 +22,15 @@ const chatForm = document.getElementById("chatForm");
 const promptEl = document.getElementById("prompt");
 const sendBtn = document.getElementById("sendBtn");
 const topNewChatBtn = document.getElementById("topNewChatBtn");
+const attachBtn = document.getElementById("attachBtn");
+const fileInput = document.getElementById("fileInput");
+const attachmentList = document.getElementById("attachmentList");
 const errorBox = document.getElementById("errorBox");
 
 let isGenerating = false;
 let chatThread = null;
 let activeSession = resolveInitialSession();
+let pendingFiles = [];
 
 function showError(message) {
   errorBox.textContent = message;
@@ -158,9 +162,68 @@ function switchSession(sessionId) {
   }
 }
 
+function formatAttachmentContext(extracts) {
+  if (!extracts?.length) return "";
+  const blocks = extracts.map((item) => `### File: ${item.name}\n${item.text}`);
+  return `[Uploaded file content]\n\n${blocks.join("\n\n")}\n\n---\n\n`;
+}
+
+function renderAttachmentChips() {
+  attachmentList.innerHTML = "";
+  if (!pendingFiles.length) {
+    attachmentList.classList.add("hidden");
+    return;
+  }
+
+  attachmentList.classList.remove("hidden");
+  for (const [index, file] of pendingFiles.entries()) {
+    const chip = document.createElement("div");
+    chip.className = "attachment-chip";
+
+    const label = document.createElement("span");
+    label.className = "attachment-chip-label";
+    label.textContent = file.name;
+    label.title = file.name;
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "attachment-chip-remove";
+    removeBtn.setAttribute("aria-label", `Remove ${file.name}`);
+    removeBtn.textContent = "×";
+    removeBtn.addEventListener("click", () => {
+      pendingFiles = pendingFiles.filter((_, i) => i !== index);
+      renderAttachmentChips();
+    });
+
+    chip.appendChild(label);
+    chip.appendChild(removeBtn);
+    attachmentList.appendChild(chip);
+  }
+}
+
+function addPendingFiles(fileList) {
+  const merged = [...pendingFiles, ...Array.from(fileList || [])];
+  pendingFiles = merged.slice(0, 5);
+  renderAttachmentChips();
+}
+
+function clearPendingFiles() {
+  pendingFiles = [];
+  fileInput.value = "";
+  renderAttachmentChips();
+}
+
+attachBtn.addEventListener("click", () => fileInput.click());
+
+fileInput.addEventListener("change", () => {
+  addPendingFiles(fileInput.files);
+  fileInput.value = "";
+});
+
 function startNewSession() {
   activeSession = null;
   clearActiveSession();
+  clearPendingFiles();
   renderConversation([]);
   renderHistoryList();
   clearError();
@@ -335,6 +398,9 @@ async function checkHealth() {
     if (!data.hasToken) {
       showError("Server missing HF_TOKEN — set it in Vercel environment variables.");
     }
+    if (!data.hasNvidiaKey) {
+      showError("Server missing NVIDIA_API_KEY — file uploads will not work.");
+    }
   } catch {
     showError("Server offline.");
   }
@@ -351,19 +417,24 @@ chatForm.addEventListener("submit", async (event) => {
   clearError();
 
   const message = promptEl.value.trim();
-  if (!message) return;
+  const files = [...pendingFiles];
+  if (!message && !files.length) return;
 
   ensureSessionForMessage();
 
   const history = activeSession.messages.map(({ role, content }) => ({ role, content }));
+  const displayMessage = files.length
+    ? `${files.map((f) => `📎 ${f.name}`).join("\n")}${message ? `\n\n${message}` : "\n\nAnalyze the attached files."}`
+    : message;
 
-  appendMessage("user", message);
+  appendMessage("user", displayMessage);
   promptEl.value = "";
   autoResizeTextarea();
+  clearPendingFiles();
 
   const pendingMessages = [
     ...activeSession.messages,
-    { role: "user", content: message },
+    { role: "user", content: displayMessage },
   ];
   persistMessages(pendingMessages);
 
@@ -374,13 +445,34 @@ chatForm.addEventListener("submit", async (event) => {
 
   isGenerating = true;
   sendBtn.disabled = true;
-  showTyping("Thinking...");
+  attachBtn.disabled = true;
+  showTyping(files.length ? "Extracting files..." : "Thinking...");
 
   try {
+    let attachmentContext = "";
+    if (files.length) {
+      const formData = new FormData();
+      files.forEach((file) => formData.append("files", file));
+      const extractRes = await fetch("/api/extract-files", {
+        method: "POST",
+        body: formData,
+      });
+      const extractData = await extractRes.json();
+      if (!extractRes.ok) {
+        throw new Error(extractData.error || "File extraction failed.");
+      }
+      attachmentContext = formatAttachmentContext(extractData.extracts);
+      showTyping("Thinking...");
+    }
+
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, history }),
+      body: JSON.stringify({
+        message: message || "Analyze the attached files.",
+        history,
+        attachmentContext,
+      }),
     });
 
     const data = await res.json();
@@ -413,6 +505,7 @@ chatForm.addEventListener("submit", async (event) => {
   } finally {
     isGenerating = false;
     sendBtn.disabled = false;
+    attachBtn.disabled = false;
   }
 });
 

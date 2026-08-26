@@ -12,7 +12,7 @@ export function createApp() {
   const publicDir = getPublicDir();
   const api = createApiRouter();
 
-  app.use(express.json({ limit: "2mb" }));
+  app.use(express.json({ limit: "4mb" }));
   app.use(express.static(publicDir));
 
   for (const [route, handler] of api.get) {
