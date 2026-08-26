@@ -36,8 +36,13 @@ export async function runChat({
 
   if (shouldSearchWeb(userMessage, true)) {
     const query = extractSearchQuery(userMessage);
-    searchMeta = await searchWeb(query);
-    searchContext = formatSearchContext(searchMeta);
+    try {
+      searchMeta = await searchWeb(query);
+      searchContext = formatSearchContext(searchMeta);
+    } catch (error) {
+      console.warn("[search] failed:", error.message);
+      searchContext = `[Web search failed: ${error.message}. Answer from your knowledge and note limitations.]`;
+    }
   }
 
   const messages = buildApiMessages(history, { searchContext });

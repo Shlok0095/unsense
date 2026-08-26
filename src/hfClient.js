@@ -45,6 +45,14 @@ export function parseAssistantResponse(choice, usageData) {
   };
 }
 
+function extractApiError(data, fallback = "Hugging Face API error") {
+  if (!data) return fallback;
+  if (typeof data.error === "string") return data.error;
+  if (data.error?.message) return data.error.message;
+  if (data.message) return data.message;
+  return fallback;
+}
+
 function shouldFallback(error) {
   const status = error?.status ?? 0;
   if (status === 429 || status >= 500) return true;
@@ -84,11 +92,21 @@ export async function chatCompletion({
     }),
   });
 
-  const data = await upstream.json();
+  const raw = await upstream.text();
+  let data = null;
+
+  try {
+    data = raw ? JSON.parse(raw) : null;
+  } catch {
+    const error = new Error(
+      raw?.slice(0, 200) || `Hugging Face returned ${upstream.status}`
+    );
+    error.status = upstream.status || 502;
+    throw error;
+  }
 
   if (!upstream.ok) {
-    const message =
-      data?.error?.message || data?.message || "Hugging Face API error";
+    const message = extractApiError(data, `Hugging Face API error (${upstream.status})`);
     const error = new Error(message);
     error.status = upstream.status;
     error.details = data;

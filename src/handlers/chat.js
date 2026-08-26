@@ -55,8 +55,9 @@ export async function handleChat(req, res) {
       webSearch: result.webSearch,
     });
   } catch (error) {
-    return res.status(error.status || 502).json({
-      error: error.message || "Failed to reach Hugging Face router.",
-    });
+    const status = error.status || 502;
+    const message = error.message || "Failed to reach Hugging Face router.";
+    console.error("[chat]", status, message, error.details || "");
+    return res.status(status).json({ error: message });
   }
 }
