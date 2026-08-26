@@ -9,7 +9,9 @@
   }
 
   body {
-    @apply bg-void text-slate-200 antialiased;
+    @apply overflow-hidden bg-void text-slate-200 antialiased;
+    min-height: 100vh;
+    min-height: 100dvh;
   }
 
   ::-webkit-scrollbar {
@@ -56,7 +58,9 @@
   }
 
   .app-root {
-    @apply relative grid h-screen overflow-hidden;
+    @apply relative grid overflow-hidden;
+    height: 100vh;
+    height: 100dvh;
     grid-template-columns: 20rem minmax(0, 1fr);
     transition: grid-template-columns 0.3s ease-in-out;
   }
@@ -76,8 +80,9 @@
     }
 
     .sidebar {
-      @apply fixed inset-y-0 left-0 z-40 w-80 shadow-2xl transition-transform duration-300 ease-in-out;
+      @apply fixed inset-y-0 left-0 z-40 w-[min(20rem,85vw)] shadow-2xl transition-transform duration-300 ease-in-out;
       transform: translateX(-100%);
+      padding-top: env(safe-area-inset-top, 0px);
     }
 
     .app-root:not(.sidebar-collapsed) .sidebar {
@@ -86,6 +91,36 @@
 
     .app-root.sidebar-collapsed .sidebar {
       transform: translateX(-100%);
+    }
+
+    .topbar {
+      @apply px-3 py-3;
+      padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
+    }
+
+    .chat-main {
+      @apply px-3 py-4;
+    }
+
+    .composer {
+      @apply px-3 py-3;
+      padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+    }
+
+    .composer-box {
+      @apply gap-2 p-2 pl-3;
+    }
+
+    .btn-send {
+      @apply px-4 py-3;
+    }
+
+    .empty-state h2 {
+      @apply text-2xl;
+    }
+
+    .empty-state .text-6xl {
+      @apply text-5xl;
     }
   }
 
@@ -171,6 +206,8 @@
 
   .chat-main {
     @apply min-h-0 flex-1 overflow-y-auto px-5 py-8 md:px-10;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
 
   .empty-state {
@@ -257,6 +294,7 @@
 
   .composer {
     @apply shrink-0 border-t border-neon/15 bg-panel/90 px-5 py-5 backdrop-blur-md md:px-10;
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 0px));
   }
 
   .attachment-list {
@@ -280,7 +318,9 @@
   }
 
   .composer-input {
-    @apply max-h-56 min-h-[52px] flex-1 resize-none bg-transparent py-3 text-base text-slate-100 outline-none placeholder:text-slate-600;
+    @apply max-h-56 min-h-[52px] flex-1 resize-none bg-transparent py-3 text-slate-100 outline-none placeholder:text-slate-600;
+    /* iOS auto-zooms inputs below 16px — keep at least 16px even with 88% root font-size. */
+    font-size: max(16px, 1rem);
   }
 
   .btn-send {

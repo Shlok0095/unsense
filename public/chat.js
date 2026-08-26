@@ -53,7 +53,15 @@ function setSidebarCollapsed(collapsed) {
 }
 
 function initSidebar() {
-  setSidebarCollapsed(false);
+  // Mobile: start with sidebar closed so the chat is usable immediately from a shared link.
+  setSidebarCollapsed(window.innerWidth < 768);
+}
+
+function keepComposerVisible() {
+  if (window.innerWidth >= 768) return;
+  window.setTimeout(() => {
+    document.querySelector(".composer")?.scrollIntoView({ block: "end", behavior: "smooth" });
+  }, 300);
 }
 
 function updateNewSessionControls() {
@@ -510,6 +518,12 @@ chatForm.addEventListener("submit", async (event) => {
 });
 
 promptEl.addEventListener("input", autoResizeTextarea);
+
+promptEl.addEventListener("focus", keepComposerVisible);
+
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", keepComposerVisible);
+}
 
 promptEl.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && !event.shiftKey) {
