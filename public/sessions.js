@@ -30,12 +30,28 @@ export function setActiveSessionId(id) {
 
 export function listSessions() {
   return loadAll()
+    .filter((session) => session.messages?.length > 0)
     .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
     .map(({ id, title, updatedAt }) => ({ id, title, updatedAt }));
 }
 
 export function getSession(id) {
   return loadAll().find((session) => session.id === id) || null;
+}
+
+export function clearActiveSession() {
+  localStorage.removeItem(ACTIVE_KEY);
+}
+
+export function resolveInitialSession() {
+  const activeId = getActiveSessionId();
+  if (!activeId) return null;
+
+  const session = getSession(activeId);
+  if (session) return session;
+
+  clearActiveSession();
+  return null;
 }
 
 export function createSession() {
@@ -57,6 +73,7 @@ export function ensureActiveSession() {
   if (activeId) {
     const existing = getSession(activeId);
     if (existing) return existing;
+    clearActiveSession();
   }
 
   const sessions = loadAll();
@@ -65,7 +82,7 @@ export function ensureActiveSession() {
     return sessions[0];
   }
 
-  return createSession();
+  return null;
 }
 
 export function updateSession(id, messages) {
@@ -90,7 +107,7 @@ export function deleteSession(id) {
     if (sessions.length) {
       setActiveSessionId(sessions[0].id);
     } else {
-      localStorage.removeItem(ACTIVE_KEY);
+      clearActiveSession();
     }
   }
   return sessions;

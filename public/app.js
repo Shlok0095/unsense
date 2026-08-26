@@ -1,10 +1,12 @@
 import { linkifyBareUrls, shortLinkLabel } from "./linkUtils.js";
 import {
+  clearActiveSession,
   createSession,
-  ensureActiveSession,
+  deleteSession,
   getActiveSessionId,
   getSession,
   listSessions,
+  resolveInitialSession,
   setActiveSessionId,
   updateSession,
 } from "./sessions.js";
@@ -19,13 +21,12 @@ const emptyState = document.getElementById("emptyState");
 const chatForm = document.getElementById("chatForm");
 const promptEl = document.getElementById("prompt");
 const sendBtn = document.getElementById("sendBtn");
-const newChatBtn = document.getElementById("newChatBtn");
 const topNewChatBtn = document.getElementById("topNewChatBtn");
 const errorBox = document.getElementById("errorBox");
 
 let isGenerating = false;
 let chatThread = null;
-let activeSession = ensureActiveSession();
+let activeSession = resolveInitialSession();
 
 function showError(message) {
   errorBox.textContent = message;
@@ -49,6 +50,20 @@ function setSidebarCollapsed(collapsed) {
 
 function initSidebar() {
   setSidebarCollapsed(false);
+}
+
+function updateNewSessionControls() {
+  const hasSessions = listSessions().length > 0;
+  topNewChatBtn.classList.toggle("hidden", !hasSessions);
+}
+
+function ensureSessionForMessage() {
+  if (!activeSession) {
+    activeSession = createSession();
+    renderHistoryList();
+    updateNewSessionControls();
+  }
+  return activeSession;
 }
 
 sidebarToggle.addEventListener("click", (event) => {
@@ -77,7 +92,7 @@ window.addEventListener("resize", () => {
 
 function renderHistoryList() {
   const sessions = listSessions();
-  const activeId = getActiveSessionId();
+  const activeId = activeSession?.id || "";
   historyList.innerHTML = "";
 
   if (!sessions.length) {
@@ -89,14 +104,45 @@ function renderHistoryList() {
   }
 
   for (const session of sessions) {
+    const row = document.createElement("div");
+    row.className = `history-row${session.id === activeId ? " active" : ""}`;
+
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = `history-item${session.id === activeId ? " active" : ""}`;
+    btn.className = "history-item";
     btn.textContent = session.title;
     btn.title = session.title;
     btn.addEventListener("click", () => switchSession(session.id));
-    historyList.appendChild(btn);
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "history-delete";
+    deleteBtn.title = "Delete session";
+    deleteBtn.setAttribute("aria-label", "Delete session");
+    deleteBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>`;
+    deleteBtn.addEventListener("click", (event) => removeSession(session.id, event));
+
+    row.appendChild(btn);
+    row.appendChild(deleteBtn);
+    historyList.appendChild(row);
   }
+}
+
+function removeSession(sessionId, event) {
+  event.stopPropagation();
+
+  const deletingActive = activeSession?.id === sessionId;
+  deleteSession(sessionId);
+
+  if (deletingActive) {
+    activeSession = null;
+    clearActiveSession();
+    renderConversation([]);
+  }
+
+  renderHistoryList();
+  updateNewSessionControls();
+  clearError();
 }
 
 function switchSession(sessionId) {
@@ -113,14 +159,16 @@ function switchSession(sessionId) {
 }
 
 function startNewSession() {
-  activeSession = createSession();
-  renderHistoryList();
+  activeSession = null;
+  clearActiveSession();
   renderConversation([]);
+  renderHistoryList();
   clearError();
   promptEl.focus();
 }
 
 function persistMessages(messages) {
+  if (!activeSession) return;
   activeSession = updateSession(activeSession.id, messages) || activeSession;
   renderHistoryList();
 }
@@ -305,6 +353,8 @@ chatForm.addEventListener("submit", async (event) => {
   const message = promptEl.value.trim();
   if (!message) return;
 
+  ensureSessionForMessage();
+
   const history = activeSession.messages.map(({ role, content }) => ({ role, content }));
 
   appendMessage("user", message);
@@ -350,8 +400,16 @@ chatForm.addEventListener("submit", async (event) => {
     hideTyping();
     showError(error.message);
     const reverted = activeSession.messages.slice(0, -1);
-    persistMessages(reverted);
-    renderConversation(reverted);
+    if (reverted.length) {
+      persistMessages(reverted);
+      renderConversation(reverted);
+    } else {
+      deleteSession(activeSession.id);
+      activeSession = null;
+      clearActiveSession();
+      renderConversation([]);
+      updateNewSessionControls();
+    }
   } finally {
     isGenerating = false;
     sendBtn.disabled = false;
@@ -367,10 +425,10 @@ promptEl.addEventListener("keydown", (event) => {
   }
 });
 
-newChatBtn.addEventListener("click", startNewSession);
 topNewChatBtn.addEventListener("click", startNewSession);
 
 initSidebar();
+updateNewSessionControls();
 renderHistoryList();
-renderConversation(activeSession.messages);
+renderConversation(activeSession?.messages || []);
 await checkHealth();

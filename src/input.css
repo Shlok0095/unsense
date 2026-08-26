@@ -3,6 +3,10 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    font-size: 118%;
+  }
+
   body {
     @apply bg-void text-slate-200 antialiased;
   }
@@ -52,7 +56,7 @@
 
   .app-root {
     @apply relative grid h-screen overflow-hidden;
-    grid-template-columns: 18rem minmax(0, 1fr);
+    grid-template-columns: 20rem minmax(0, 1fr);
     transition: grid-template-columns 0.3s ease-in-out;
   }
 
@@ -71,7 +75,7 @@
     }
 
     .sidebar {
-      @apply fixed inset-y-0 left-0 z-40 w-72 shadow-2xl transition-transform duration-300 ease-in-out;
+      @apply fixed inset-y-0 left-0 z-40 w-80 shadow-2xl transition-transform duration-300 ease-in-out;
       transform: translateX(-100%);
     }
 
@@ -101,11 +105,11 @@
   }
 
   .sidebar-header {
-    @apply flex items-start justify-between gap-2 border-b border-neon/15 p-4;
+    @apply flex items-center justify-between gap-2 border-b border-neon/15 p-5;
   }
 
   .sidebar-body {
-    @apply flex flex-1 flex-col gap-4 overflow-y-auto p-4;
+    @apply flex flex-1 flex-col gap-4 overflow-y-auto p-5;
   }
 
   .sidebar-footer {
@@ -113,26 +117,38 @@
   }
 
   .history-list {
-    @apply flex flex-1 flex-col gap-1 overflow-y-auto;
+    @apply flex flex-1 flex-col gap-1.5 overflow-y-auto;
   }
 
   .history-empty {
-    @apply px-2 py-3 text-[11px] text-slate-600;
+    @apply px-2 py-3 text-sm text-slate-600;
+  }
+
+  .history-row {
+    @apply flex min-w-0 items-center gap-1 rounded-lg border border-transparent transition hover:border-neon/15;
+  }
+
+  .history-row.active {
+    @apply border-neon/25 bg-neon/10;
   }
 
   .history-item {
-    @apply w-full truncate rounded-lg px-3 py-2.5 text-left text-xs text-slate-400 transition hover:bg-neon/5 hover:text-neon;
+    @apply min-w-0 flex-1 truncate rounded-lg px-3 py-3 text-left text-sm text-slate-400 transition hover:text-neon;
   }
 
-  .history-item.active {
-    @apply border border-neon/25 bg-neon/10 text-neon;
+  .history-row.active .history-item {
+    @apply text-neon;
+  }
+
+  .history-delete {
+    @apply mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-danger/10 hover:text-danger;
   }
 
   .topbar-new-btn {
     display: none;
   }
 
-  .app-root.sidebar-collapsed .topbar-new-btn {
+  .topbar-new-btn:not(.hidden) {
     display: inline-flex;
   }
 
@@ -145,7 +161,7 @@
   }
 
   .topbar {
-    @apply flex shrink-0 items-center justify-between border-b border-neon/15 bg-panel/90 px-4 py-3 backdrop-blur-md;
+    @apply flex shrink-0 items-center justify-between border-b border-neon/15 bg-panel/90 px-5 py-4 backdrop-blur-md;
   }
 
   .chat-shell {
@@ -153,15 +169,15 @@
   }
 
   .chat-main {
-    @apply min-h-0 flex-1 overflow-y-auto px-4 py-6 md:px-8;
+    @apply min-h-0 flex-1 overflow-y-auto px-5 py-8 md:px-10;
   }
 
   .empty-state {
-    @apply mx-auto flex min-h-full w-full max-w-3xl flex-col items-center justify-center px-4 text-center;
+    @apply mx-auto flex min-h-full w-full max-w-4xl flex-col items-center justify-center px-4 text-center;
   }
 
   .chat-thread {
-    @apply mx-auto flex max-w-3xl flex-col gap-6;
+    @apply mx-auto flex max-w-4xl flex-col gap-7;
   }
 
   .msg-user-wrap {
@@ -169,7 +185,7 @@
   }
 
   .msg-user {
-    @apply max-w-[85%] rounded-2xl rounded-br-sm border border-neon/25 bg-neon/10 px-4 py-3 text-sm leading-7 text-slate-100;
+    @apply max-w-[85%] rounded-2xl rounded-br-sm border border-neon/25 bg-neon/10 px-5 py-4 text-base leading-8 text-slate-100;
   }
 
   .msg-assistant-wrap {
@@ -177,11 +193,11 @@
   }
 
   .msg-assistant {
-    @apply max-w-none text-sm leading-7 text-slate-200;
+    @apply max-w-none text-base leading-8 text-slate-200;
   }
 
   .msg-assistant h2 {
-    @apply mb-3 mt-6 border-b border-neon/20 pb-2 text-xs font-bold uppercase tracking-wider text-neon first:mt-0;
+    @apply mb-3 mt-6 border-b border-neon/20 pb-2 text-sm font-bold uppercase tracking-wider text-neon first:mt-0;
   }
 
   .msg-assistant h3 {
@@ -198,7 +214,7 @@
   }
 
   .msg-assistant li {
-    @apply leading-7;
+    @apply leading-8;
   }
 
   .msg-assistant strong {
@@ -206,11 +222,11 @@
   }
 
   .msg-assistant pre {
-    @apply my-4 overflow-x-auto rounded-lg border border-edge bg-void/90 p-4 text-xs text-neon;
+    @apply my-4 overflow-x-auto rounded-lg border border-edge bg-void/90 p-5 text-sm text-neon;
   }
 
   .msg-assistant code {
-    @apply rounded bg-surface px-1.5 py-0.5 text-xs text-neon;
+    @apply rounded bg-surface px-1.5 py-0.5 text-sm text-neon;
   }
 
   .msg-assistant pre code {
@@ -231,35 +247,35 @@
   }
 
   .source-links-label {
-    @apply text-[10px] uppercase tracking-widest text-slate-500;
+    @apply text-xs uppercase tracking-widest text-slate-500;
   }
 
   .source-link {
-    @apply rounded-md border border-neon/25 bg-neon/5 px-2.5 py-1 text-[11px] text-neon no-underline transition hover:border-neon/50 hover:bg-neon/10;
+    @apply rounded-md border border-neon/25 bg-neon/5 px-3 py-1.5 text-sm text-neon no-underline transition hover:border-neon/50 hover:bg-neon/10;
   }
 
   .composer {
-    @apply shrink-0 border-t border-neon/15 bg-panel/90 px-4 py-4 backdrop-blur-md md:px-8;
+    @apply shrink-0 border-t border-neon/15 bg-panel/90 px-5 py-5 backdrop-blur-md md:px-10;
   }
 
   .composer-box {
-    @apply mx-auto flex max-w-3xl items-end gap-3 rounded-xl border border-neon/30 bg-void/80 p-2 pl-4 shadow-neon focus-within:border-neon/60;
+    @apply mx-auto flex max-w-4xl items-end gap-3 rounded-xl border border-neon/30 bg-void/80 p-3 pl-5 shadow-neon focus-within:border-neon/60;
   }
 
   .composer-input {
-    @apply max-h-48 min-h-[44px] flex-1 resize-none bg-transparent py-3 text-sm text-slate-100 outline-none placeholder:text-slate-600;
+    @apply max-h-56 min-h-[52px] flex-1 resize-none bg-transparent py-3 text-base text-slate-100 outline-none placeholder:text-slate-600;
   }
 
   .btn-send {
-    @apply rounded-lg bg-neon px-5 py-2.5 text-xs font-bold text-void transition hover:bg-neonDim disabled:cursor-not-allowed disabled:opacity-40;
+    @apply rounded-lg bg-neon px-6 py-3 text-sm font-bold text-void transition hover:bg-neonDim disabled:cursor-not-allowed disabled:opacity-40;
   }
 
   .btn-ghost {
-    @apply rounded-lg border border-edge px-4 py-2.5 text-sm text-slate-300 transition hover:border-neon/40 hover:text-neon;
+    @apply rounded-lg border border-edge px-4 py-3 text-base text-slate-300 transition hover:border-neon/40 hover:text-neon;
   }
 
   .icon-btn {
-    @apply flex h-9 w-9 items-center justify-center rounded-lg border border-neon/25 bg-void/60 text-neon transition hover:border-neon hover:bg-neon/10;
+    @apply flex h-11 w-11 items-center justify-center rounded-lg border border-neon/25 bg-void/60 text-neon transition hover:border-neon hover:bg-neon/10;
   }
 
   .select-dark {
@@ -267,7 +283,7 @@
   }
 
   .error-box {
-    @apply mx-auto mt-3 max-w-3xl rounded-lg border border-danger/40 bg-danger/10 px-4 py-2 text-xs text-red-300;
+    @apply mx-auto mt-3 max-w-4xl rounded-lg border border-danger/40 bg-danger/10 px-4 py-2 text-sm text-red-300;
   }
 
   .disclaimer {
@@ -275,7 +291,7 @@
   }
 
   .typing-row {
-    @apply flex items-center gap-2 text-xs text-slate-500;
+    @apply flex items-center gap-2 text-sm text-slate-500;
   }
 
   .typing-dot {
