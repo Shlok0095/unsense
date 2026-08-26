@@ -25,6 +25,7 @@ export function enrichSearchResults(results = []) {
       title: item.title || "",
       url: item.url,
       snippet: item.snippet || "",
+      excerpt: item.excerpt || "",
       label: shortLinkLabel(item.url, item.title),
     }));
 }

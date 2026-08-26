@@ -1,5 +1,6 @@
 import { SYSTEM_PROMPT, CONTEXT_WINDOW_MESSAGES } from "./prompts.js";
-import { shouldSearchWeb, extractSearchQuery } from "./searchTriggers.js";
+import { extractSearchQuery } from "./searchTriggers.js";
+import { shouldRunWebSearch } from "./searchDecision.js";
 import { searchWeb, formatSearchContext } from "./search.js";
 import { chatCompletionWithFallback } from "./hfClient.js";
 
@@ -34,14 +35,15 @@ export async function runChat({
   let searchMeta = null;
   let searchContext = null;
 
-  if (shouldSearchWeb(userMessage, true)) {
+  const needsSearch = await shouldRunWebSearch({ token, userMessage });
+
+  if (needsSearch) {
     const query = extractSearchQuery(userMessage);
     try {
       searchMeta = await searchWeb(query);
       searchContext = formatSearchContext(searchMeta);
     } catch (error) {
       console.warn("[search] failed:", error.message);
-      searchContext = `[Web search failed: ${error.message}. Answer from your knowledge and note limitations.]`;
     }
   }
 

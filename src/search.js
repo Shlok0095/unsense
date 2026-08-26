@@ -7,6 +7,9 @@ import { enrichSearchResults, shortLinkLabel } from "./linkUtils.js";
 
 const DDG_API = "https://api.duckduckgo.com/";
 const DDG_HTML = "https://html.duckduckgo.com/html/";
+const PAGE_FETCH_TIMEOUT_MS = 5000;
+const MAX_PAGE_EXCERPT_CHARS = 1200;
+const MAX_PAGES_TO_FETCH = 2;
 
 async function fetchInstantAnswers(query) {
   const url = `${DDG_API}?q=${encodeURIComponent(query)}&format=json&no_redirect=1&no_html=1`;
@@ -89,6 +92,65 @@ function stripHtml(text) {
   return text.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
 }
 
+function extractTextExcerpt(html) {
+  const withoutNoise = html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ");
+  const text = stripHtml(withoutNoise);
+  return text.slice(0, MAX_PAGE_EXCERPT_CHARS);
+}
+
+function isFetchableUrl(url) {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+async function fetchPageExcerpt(url) {
+  if (!isFetchableUrl(url)) return "";
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), PAGE_FETCH_TIMEOUT_MS);
+
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: { "User-Agent": "HFUncensoredChat/1.0" },
+      redirect: "follow",
+    });
+    if (!res.ok) return "";
+
+    const contentType = res.headers.get("content-type") || "";
+    if (!contentType.includes("text/html") && !contentType.includes("text/plain")) {
+      return "";
+    }
+
+    const html = await res.text();
+    return extractTextExcerpt(html);
+  } catch {
+    return "";
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function enrichWithPageExcerpts(results) {
+  const targets = results.slice(0, MAX_PAGES_TO_FETCH);
+  const excerpts = await Promise.all(
+    targets.map((result) => fetchPageExcerpt(result.url))
+  );
+
+  return results.map((result, index) => {
+    if (index >= excerpts.length) return result;
+    const excerpt = excerpts[index];
+    return excerpt ? { ...result, excerpt } : result;
+  });
+}
+
 export async function searchWeb(query) {
   const instant = await fetchInstantAnswers(query);
   let payload;
@@ -105,9 +167,12 @@ export async function searchWeb(query) {
     };
   }
 
+  const enriched = enrichSearchResults(payload.results);
+  const withExcerpts = await enrichWithPageExcerpts(enriched);
+
   return {
     ...payload,
-    results: enrichSearchResults(payload.results),
+    results: withExcerpts,
   };
 }
 
@@ -118,7 +183,10 @@ export function formatSearchContext(searchData) {
 
   const lines = searchData.results.map((r) => {
     const label = r.label || shortLinkLabel(r.url, r.title);
-    return `${r.id}. [${label}](${r.url})\n   ${r.snippet || r.title}`;
+    const excerptBlock = r.excerpt
+      ? `\n   Excerpt: ${r.excerpt}`
+      : "";
+    return `${r.id}. [${label}](${r.url})\n   ${r.snippet || r.title}${excerptBlock}`;
   });
 
   return `[Web search results for "${searchData.query}"]
