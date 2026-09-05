@@ -47,6 +47,11 @@ export async function decideWebSearch({ token, message, mode, privacyMode, webSe
   if (matchesSkipSearch(text)) {
     return { needsWeb: false, query: text };
   }
+  // Think/code/analyze are depth modes — don't auto-search unless the user
+  // signals freshness (web triggers above) or research mode already matched.
+  if (mode === "think" || mode === "code" || mode === "analyze") {
+    return { needsWeb: false, query: text };
+  }
   if (privacyMode === "local") {
     // Keep local mode fully offline unless the heuristics above already said yes.
     return { needsWeb: false, query: text };

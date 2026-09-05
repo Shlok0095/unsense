@@ -51,14 +51,19 @@ A concise takeaway.`,
   think: `This question benefits from careful, thorough reasoning (Think mode).
 Work through it step by step in your visible answer — show reasoning, important
 nuances, and edge cases before your conclusion. Depth matters more than brevity.
-Write a comprehensive answer: multiple paragraphs, concrete examples, and real
-detail. Do not stop at a short summary when the topic warrants more.
-Use structure only where it genuinely helps readability.`,
+Write a comprehensive answer: multiple paragraphs, concrete examples, tool names,
+commands, techniques, and practical detail where relevant.
+Do NOT use a Summary / Evidence / Analysis news-article template — that layout is
+only for explicit research/current-events mode. Prefer clear sections like steps,
+categories, comparisons, or how-it-works explanations instead.
+Do not stop at a short summary when the topic warrants more.`,
 };
 
 export const THINK_DEPTH_OVERLAY = `Think mode is ON — the user explicitly asked
 for a deep answer. Be thorough and complete. Prefer full explanations over terse
-stubs; cover steps, examples, caveats, and follow-through.`;
+stubs; cover steps, examples, caveats, and follow-through. Answer THIS message
+only — do not reuse Summary/Evidence/Analysis from earlier turns unless this
+question is current-events research.`;
 
 export function getModePrompt(mode, { thinkRequested = false } = {}) {
   const base = MODE_PROMPTS[mode] || MODE_PROMPTS.fast;

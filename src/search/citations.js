@@ -35,7 +35,7 @@ export function toSourceObjects(rawResults = []) {
 }
 
 /** The context block prepended to the user's message when web search ran. */
-export function formatSearchContext(query, sources) {
+export function formatSearchContext(query, sources, { responseMode = "research" } = {}) {
   if (!sources?.length) {
     return wrapUntrustedContent(
       "web",
@@ -49,12 +49,21 @@ export function formatSearchContext(query, sources) {
     return `${s.id}. [${s.label}](${s.url})\n   ${s.snippet || s.title}${excerptBlock}`;
   });
 
+  const citationRules =
+    responseMode === "research"
+      ? `Cite these sources inline using their number, e.g. [1], [2]. Only cite a
+number from this list — never write a URL or source that is not listed here.
+Use the research structure from your system instructions (Summary / Evidence / Analysis).`
+      : `These are optional reference results. Use them to improve accuracy but keep
+your answer in the style required by your system instructions for this mode.
+Cite [n] only when a listed source directly supports a specific claim. Do NOT
+force a Summary/Evidence/Analysis news layout unless the user asked for
+current-events research. Do not invent citations — if a source does not support
+a claim, do not cite it.`;
+
   const body = `${lines.join("\n\n")}
 
-Cite these sources inline using their number, e.g. [1], [2]. Only cite a
-number from this list — never write a URL or source that is not listed
-here. List the ones you used under "## Sources & Further Reading" as
-[n] short-title at the end of your answer.`;
+${citationRules}`;
 
   return wrapUntrustedContent("web", `search results for "${query}"`, body);
 }

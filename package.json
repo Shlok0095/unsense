@@ -12,7 +12,9 @@
     "dev": "node src/server.js",
     "start": "node src/server.js",
     "test": "node --test",
-    "eval": "node eval/benchmark.js"
+    "eval": "node eval/benchmark.js",
+    "eval:think": "python eval/think_compare.py",
+    "eval:think:live": "python eval/think_compare.py --live"
   },
   "dependencies": {
     "dotenv": "^16.4.7",

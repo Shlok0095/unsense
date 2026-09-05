@@ -75,10 +75,10 @@ export async function* runOrchestration({
         const searchData = await searchWeb(query);
         sources = searchData.results;
         if (sources.length) {
-          webContext = formatSearchContext(searchData.query, sources);
+          webContext = formatSearchContext(searchData.query, sources, { responseMode: mode });
           yield { type: "sources", sources };
         } else {
-          webContext = formatSearchContext(searchData.query, []);
+          webContext = formatSearchContext(searchData.query, [], { responseMode: mode });
         }
       } catch (error) {
         console.warn("[orchestrator] web search failed:", error.message);
