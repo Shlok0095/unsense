@@ -4,46 +4,51 @@
 
 @layer base {
   :root {
-    --sidebar-width: clamp(16rem, 22vw, 20rem);
-    --content-max: min(56rem, 100%);
+    --sidebar-width: 16rem;
+    --content-max: min(48rem, 100%);
+    --composer-radius: 1.75rem;
+    --page-gutter: 1rem;
     --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
     --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
     --transition-fast: 150ms var(--ease-soft);
     --transition-panel: 280ms var(--ease-out);
 
-    /* Background layers */
-    --bg-void: #020408;
-    --bg-deep: #050a12;
-    --bg-panel: rgba(10, 16, 28, 0.78);
-    --bg-surface: #0c1220;
-    --bg-elevated: #111a2a;
+    /* Unified dark canvas */
+    --bg-base: #0d0d0d;
+    --bg-sidebar: #171717;
+    --bg-elevated: #262626;
+    --bg-input: #2f2f2f;
+    --bg-void: #0d0d0d;
+    --bg-deep: #0d0d0d;
+    --bg-panel: #262626;
+    --bg-surface: #171717;
 
-    /* Accent */
+    /* Accent — used sparingly */
     --accent-ice: #7dd3fc;
     --accent-frost: #38bdf8;
     --accent-muted: #5b9fd4;
-    --accent-glow: rgba(125, 211, 252, 0.12);
+    --accent-glow: rgba(125, 211, 252, 0.10);
     --accent-ring: rgba(125, 211, 252, 0.35);
 
     /* Text */
-    --text-primary: #e8edf4;
-    --text-secondary: #94a3b8;
-    --text-muted: #64748b;
-    --text-dim: #475569;
+    --text-primary: #ececec;
+    --text-secondary: #a3a3a3;
+    --text-muted: #737373;
+    --text-dim: #525252;
 
     /* Borders */
-    --border-subtle: rgba(148, 163, 184, 0.10);
-    --border-default: rgba(148, 163, 184, 0.16);
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-default: rgba(255, 255, 255, 0.12);
     --border-focus: rgba(125, 211, 252, 0.30);
 
     /* Semantic */
     --danger: #f87171;
     --danger-muted: rgba(248, 113, 113, 0.15);
 
-    /* Glass */
-    --glass-blur: 16px;
-    --shadow-depth: 0 8px 32px rgba(0, 0, 0, 0.45);
-    --shadow-float: 0 4px 24px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--border-subtle);
+    /* Depth */
+    --glass-blur: 12px;
+    --shadow-depth: 0 8px 32px rgba(0, 0, 0, 0.5);
+    --shadow-float: 0 4px 24px rgba(0, 0, 0, 0.35);
   }
 
   html {
@@ -67,7 +72,7 @@
 
   body {
     @apply overflow-hidden font-sans antialiased;
-    background-color: var(--bg-void);
+    background-color: var(--bg-base);
     color: var(--text-primary);
     min-height: 100vh;
     min-height: 100dvh;
@@ -81,7 +86,7 @@
 
   :focus-visible {
     @apply outline-none ring-2 ring-ice/40 ring-offset-2;
-    --tw-ring-offset-color: var(--bg-void);
+    --tw-ring-offset-color: var(--bg-base);
   }
 
   ::-webkit-scrollbar {
@@ -98,50 +103,11 @@
 }
 
 @layer components {
-  /* ---------- Ambient background ---------- */
+  /* ---------- Unified canvas ---------- */
 
-  .void-bg {
-    @apply pointer-events-none fixed inset-0 -z-10 overflow-hidden;
-    background: var(--bg-void);
-  }
-
-  .void-bg-grid {
-    @apply absolute inset-0;
-    background-image:
-      linear-gradient(var(--border-subtle) 1px, transparent 1px),
-      linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px);
-    background-size: 40px 40px;
-    mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 20%, transparent 75%);
-    opacity: 0.5;
-  }
-
-  .void-bg-fog {
-    @apply absolute inset-0;
-    background:
-      radial-gradient(ellipse 60% 50% at 15% 20%, rgba(56, 189, 248, 0.06), transparent 60%),
-      radial-gradient(ellipse 50% 40% at 85% 75%, rgba(125, 211, 252, 0.04), transparent 55%),
-      radial-gradient(ellipse 100% 80% at 50% 100%, rgba(5, 10, 18, 0.9), transparent 50%);
-  }
-
-  .void-bg-orb {
-    @apply absolute rounded-full blur-3xl;
-    opacity: 0.35;
-  }
-
-  .void-bg-orb-1 {
-    @apply -left-32 top-1/4 h-[500px] w-[500px] animate-drift;
-    background: radial-gradient(circle, rgba(56, 189, 248, 0.12), transparent 65%);
-  }
-
-  .void-bg-orb-2 {
-    @apply -right-24 bottom-1/4 h-[400px] w-[400px] animate-drift;
-    animation-delay: -10s;
-    background: radial-gradient(circle, rgba(125, 211, 252, 0.08), transparent 65%);
-  }
-
-  .void-bg-vignette {
-    @apply absolute inset-0;
-    background: radial-gradient(ellipse at center, transparent 35%, rgba(2, 4, 8, 0.75) 100%);
+  .app-canvas {
+    @apply pointer-events-none fixed inset-0 -z-10;
+    background: var(--bg-base);
   }
 
   /* ---------- App shell ---------- */
@@ -160,19 +126,15 @@
 
   .brand-mark {
     @apply h-2 w-2 shrink-0 rounded-full;
-    background: linear-gradient(135deg, var(--accent-frost), var(--accent-ice));
-    box-shadow: 0 0 12px var(--accent-glow);
+    background: var(--text-secondary);
   }
 
   /* ---------- Sidebar ---------- */
 
   .sidebar {
     @apply z-30 flex h-full w-full min-w-0 flex-col overflow-hidden;
-    background: var(--bg-panel);
+    background: var(--bg-sidebar);
     border-right: 1px solid var(--border-subtle);
-    box-shadow: var(--shadow-depth), inset -1px 0 0 rgba(0, 0, 0, 0.2);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
     transition: transform var(--transition-panel), opacity var(--transition-fast), visibility var(--transition-fast);
   }
 
@@ -183,7 +145,7 @@
     }
 
     .sidebar {
-      @apply fixed inset-y-0 left-0 z-40 w-[min(18.5rem,88vw)];
+      @apply fixed inset-y-0 left-0 z-40 w-[min(16rem,85vw)];
       box-shadow: var(--shadow-depth);
       transform: translateX(-100%);
       padding-top: env(safe-area-inset-top, 0px);
@@ -204,17 +166,17 @@
     }
 
     .chat-main {
-      @apply px-3 py-3;
+      @apply px-4 py-4;
       scroll-padding-bottom: 1rem;
     }
 
     .composer {
-      @apply px-3 py-2.5;
-      padding-bottom: max(0.625rem, env(safe-area-inset-bottom, 0px));
+      @apply px-4 py-3;
+      padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
     }
 
-    .empty-state h2 {
-      @apply text-xl;
+    .empty-state-greeting {
+      font-size: clamp(1.5rem, 6vw, 1.875rem);
     }
 
     .msg-user {
@@ -229,9 +191,9 @@
       @apply h-10 w-10 min-h-[44px] min-w-[44px];
     }
 
-    .btn-send,
-    .btn-stop {
-      @apply min-h-[44px] px-5 py-2.5;
+    .btn-send-circle,
+    .btn-stop-circle {
+      @apply min-h-[44px] min-w-[44px];
     }
 
     .history-item {
@@ -256,7 +218,7 @@
     }
 
     .sidebar {
-      @apply fixed inset-y-0 left-0 z-40 w-[min(18rem,42vw)];
+      @apply fixed inset-y-0 left-0 z-40 w-[min(16rem,42vw)];
       box-shadow: var(--shadow-depth);
       transform: translateX(-100%);
       padding-top: env(safe-area-inset-top, 0px);
@@ -271,7 +233,7 @@
     }
 
     .chat-main {
-      @apply px-6 py-6;
+      @apply px-6 py-5;
     }
 
     .composer {
@@ -280,6 +242,9 @@
   }
 
   @media (min-width: 1024px) {
+    :root {
+      --page-gutter: 1.5rem;
+    }
     .sidebar {
       visibility: visible;
       pointer-events: auto;
@@ -296,17 +261,15 @@
   }
 
   .sidebar-header {
-    @apply flex items-center justify-between gap-2 p-5;
-    border-bottom: 1px solid var(--border-subtle);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    @apply flex items-center justify-between gap-2 px-4 py-4;
   }
 
   .sidebar-body {
-    @apply flex flex-1 flex-col gap-4 overflow-y-auto p-5;
+    @apply flex flex-1 flex-col gap-3 overflow-y-auto px-3 py-2;
   }
 
   .sidebar-footer {
-    @apply p-4;
+    @apply px-3 py-3;
     border-top: 1px solid var(--border-subtle);
   }
 
@@ -320,31 +283,29 @@
   }
 
   .history-row {
-    @apply flex min-w-0 items-center gap-1 rounded-xl border border-transparent transition-[background-color,border-color,color,box-shadow] duration-150;
+    @apply flex min-w-0 items-center gap-1 rounded-lg border border-transparent transition-[background-color,color] duration-150;
   }
 
   .history-row:hover {
-    background: rgba(255, 255, 255, 0.02);
-    border-color: var(--border-subtle);
+    background: rgba(255, 255, 255, 0.04);
   }
 
   .history-row.active {
-    background: var(--accent-glow);
-    border-color: var(--border-focus);
-    box-shadow: inset 3px 0 0 var(--accent-frost);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: transparent;
   }
 
   .history-item {
-    @apply min-w-0 flex-1 truncate rounded-xl px-3 py-3 text-left text-sm transition;
+    @apply min-w-0 flex-1 truncate rounded-lg px-3 py-2.5 text-left text-sm transition;
     color: var(--text-secondary);
   }
 
   .history-item:hover {
-    color: var(--accent-ice);
+    color: var(--text-primary);
   }
 
   .history-row.active .history-item {
-    color: var(--accent-ice);
+    color: var(--text-primary);
   }
 
   .history-delete {
@@ -356,6 +317,16 @@
     @apply bg-danger/10 text-danger;
   }
 
+  @media (min-width: 1024px) {
+    .topbar-brand {
+      @apply hidden;
+    }
+
+    .app-root.sidebar-collapsed .topbar-brand {
+      @apply inline;
+    }
+  }
+
   .topbar-new-btn {
     display: none;
   }
@@ -365,7 +336,7 @@
   }
 
   .sidebar-overlay {
-    @apply fixed inset-0 z-20 bg-black/60 backdrop-blur-sm;
+    @apply fixed inset-0 z-20 bg-black/50;
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
@@ -381,49 +352,47 @@
   /* ---------- Topbar ---------- */
 
   .topbar {
-    @apply sticky top-0 z-30 flex shrink-0 items-center justify-between px-5 py-3.5 backdrop-blur-md;
-    background: rgba(10, 16, 28, 0.85);
-    border-bottom: 1px solid var(--border-subtle);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    @apply sticky top-0 z-30 flex shrink-0 items-center justify-between px-4 py-3;
+    background: var(--bg-base);
   }
 
   .chat-shell {
-    @apply flex min-h-0 min-w-0 flex-col;
-    background: rgba(2, 4, 8, 0.4);
+    @apply relative flex min-h-0 min-w-0 flex-col;
+    background: var(--bg-base);
   }
 
   .chat-main {
-    @apply min-h-0 flex-1 overflow-y-auto px-5 py-8 md:px-10;
+    @apply flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-6 lg:px-6;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+    scroll-padding-bottom: 8rem;
   }
 
   /* ---------- Empty state ---------- */
 
   .empty-state {
-    @apply mx-auto flex min-h-full w-full max-w-4xl flex-col items-center justify-center px-4 text-center;
-    animation: fadeUp 0.6s var(--ease-out) both;
+    @apply mx-auto flex w-full flex-1 flex-col items-center justify-center px-4 pb-8 text-center;
+    max-width: var(--content-max);
+    animation: fadeUp 0.5s var(--ease-out) both;
   }
 
-  .empty-state-glyph {
-    @apply relative flex h-20 w-20 items-center justify-center;
+  .empty-state-greeting {
+    font-family: "Instrument Serif", Georgia, "Times New Roman", serif;
+    font-size: clamp(1.75rem, 4vw, 2.25rem);
+    font-weight: 400;
+    line-height: 1.2;
+    color: var(--text-primary);
   }
 
-  .empty-state-ring {
-    @apply absolute inset-0 rounded-full;
-    border: 1px solid var(--border-focus);
-    background: radial-gradient(circle, var(--accent-glow), transparent 70%);
-    animation: pulseSlow 4s ease-in-out infinite;
-  }
-
-  .empty-state-core {
-    @apply relative text-3xl;
+  .empty-state-sub {
+    @apply mt-3 max-w-md text-base;
+    color: var(--text-secondary);
   }
 
   /* ---------- Chat messages ---------- */
 
   .chat-thread {
-    @apply mx-auto flex w-full max-w-4xl flex-col gap-6;
+    @apply mx-auto flex w-full flex-col gap-6 pb-4;
     max-width: var(--content-max);
   }
 
@@ -437,12 +406,9 @@
   }
 
   .msg-user {
-    @apply max-w-[85%] rounded-2xl rounded-br-md px-5 py-4 text-base leading-relaxed;
+    @apply max-w-[85%] rounded-[1.25rem] px-4 py-3 text-base leading-relaxed;
     color: var(--text-primary);
-    background: rgba(17, 26, 42, 0.8);
-    border: 1px solid var(--border-focus);
-    box-shadow: var(--shadow-float), inset 0 1px 0 rgba(255, 255, 255, 0.04);
-    backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.08);
   }
 
   .msg-assistant-wrap {
@@ -450,14 +416,13 @@
   }
 
   .msg-assistant {
-    @apply max-w-none text-[1.0625rem] leading-[1.65];
+    @apply max-w-none text-base leading-[1.65];
     color: var(--text-primary);
   }
 
   .msg-assistant h2 {
-    @apply mb-3 mt-6 border-b pb-2 text-sm font-semibold tracking-wide first:mt-0;
-    color: var(--accent-ice);
-    border-color: var(--border-subtle);
+    @apply mb-3 mt-6 text-base font-semibold first:mt-0;
+    color: var(--text-primary);
   }
 
   .msg-assistant h3 {
@@ -467,7 +432,7 @@
 
   .msg-assistant p {
     @apply mb-3;
-    color: var(--text-secondary);
+    color: var(--text-primary);
   }
 
   .msg-assistant ul,
@@ -486,17 +451,16 @@
   }
 
   .msg-assistant pre {
-    @apply my-4 overflow-x-auto rounded-xl border p-5 font-mono text-sm;
-    background: rgba(2, 4, 8, 0.85);
-    border-color: var(--border-default);
-    color: var(--accent-ice);
-    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+    @apply my-4 overflow-x-auto rounded-xl p-4 font-mono text-sm;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
   }
 
   .msg-assistant code {
     @apply rounded-md px-1.5 py-0.5 font-mono text-sm;
-    background: var(--bg-elevated);
-    color: var(--accent-ice);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
   }
 
   .msg-assistant pre code {
@@ -539,39 +503,41 @@
   }
 
   .source-link {
-    @apply cursor-pointer rounded-lg px-3 py-1.5 text-sm no-underline transition-[background-color,border-color,transform] duration-150;
-    color: var(--accent-ice);
-    background: var(--accent-glow);
-    border: 1px solid var(--border-focus);
+    @apply cursor-pointer rounded-full px-3 py-1 text-sm no-underline transition-[background-color] duration-150;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-subtle);
     pointer-events: auto;
     touch-action: manipulation;
   }
 
   .source-link:hover {
-    background: rgba(125, 211, 252, 0.18);
-    border-color: var(--accent-frost);
-    transform: translateY(-1px);
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.08);
   }
 
   /* ---------- Composer ---------- */
 
   .composer {
-    @apply sticky bottom-0 z-20 shrink-0 px-5 py-5 backdrop-blur-md md:px-10;
-    background: rgba(10, 16, 28, 0.88);
-    border-top: 1px solid var(--border-subtle);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
-    padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 0px));
+    @apply sticky bottom-0 z-20 shrink-0 px-4 py-3 lg:px-6;
+    background: linear-gradient(to top, var(--bg-base) 65%, transparent);
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  }
+
+  .composer-inner {
+    @apply mx-auto w-full;
+    max-width: var(--content-max);
   }
 
   .attachment-list {
-    @apply mx-auto mb-3 flex max-w-4xl flex-wrap gap-2;
+    @apply mb-2 flex flex-wrap gap-2;
   }
 
   .attachment-chip {
-    @apply flex max-w-full items-center gap-2 rounded-xl px-3 py-2 text-sm;
-    color: var(--accent-ice);
-    background: var(--accent-glow);
-    border: 1px solid var(--border-focus);
+    @apply flex max-w-full items-center gap-2 rounded-full px-3 py-1.5 text-sm;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border-subtle);
   }
 
   .attachment-chip-label {
@@ -587,75 +553,78 @@
     @apply text-danger;
   }
 
-  .composer-box {
-    @apply mx-auto flex w-full max-w-4xl flex-col gap-2 rounded-2xl p-3 transition-[border-color,box-shadow,transform] duration-200;
-    max-width: var(--content-max);
-    background: rgba(5, 10, 18, 0.75);
+  .composer-pill {
+    @apply flex w-full flex-col gap-2 px-4 py-3 transition-[border-color,box-shadow] duration-200;
+    border-radius: var(--composer-radius);
+    background: var(--bg-elevated);
     border: 1px solid var(--border-default);
     box-shadow: var(--shadow-float);
-    backdrop-filter: blur(12px);
   }
 
-  .composer-box:focus-within {
+  .composer-pill:focus-within {
     border-color: var(--border-focus);
-    box-shadow: var(--shadow-float), 0 0 32px var(--accent-glow);
+    box-shadow: var(--shadow-float), 0 0 0 1px var(--accent-glow);
   }
 
-  .composer-row {
-    @apply flex min-w-0 items-end gap-2;
+  .composer-pill-bar {
+    @apply flex min-w-0 items-center justify-between gap-2;
   }
 
-  .composer-row-main {
-    @apply w-full;
+  .composer-pill-left,
+  .composer-pill-right {
+    @apply flex min-w-0 items-center gap-1.5;
   }
 
-  .composer-row-actions {
-    @apply w-full items-center justify-between;
+  .composer-pill-right {
+    @apply shrink-0;
   }
 
-  .composer-action-btns {
-    @apply flex shrink-0 items-center gap-2;
+  .composer-icon-btn {
+    @apply flex h-9 w-9 min-h-[36px] min-w-[36px] shrink-0 items-center justify-center rounded-full transition-[background-color,color] duration-150;
+    color: var(--text-secondary);
+    background: transparent;
   }
 
-  @media (min-width: 640px) {
-    .composer-box {
-      @apply flex-row items-end gap-3 p-3 pl-4;
-    }
-
-    .composer-row-main {
-      @apply min-w-0 flex-1;
-    }
-
-    .composer-row-actions {
-      @apply w-auto shrink-0 flex-col items-stretch gap-2 sm:flex-row sm:items-center;
-    }
-  }
-
-  @media (min-width: 768px) {
-    .composer-row-actions {
-      @apply flex-row items-center gap-2;
-    }
+  .composer-icon-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.06);
   }
 
   .composer-input {
-    @apply max-h-56 min-h-[44px] w-full min-w-0 flex-1 resize-none bg-transparent py-2.5 outline-none;
+    @apply max-h-52 min-h-[24px] w-full min-w-0 resize-none bg-transparent py-1 outline-none;
     color: var(--text-primary);
     font-size: max(16px, 1rem);
+    line-height: 1.5;
   }
 
   .composer-input::placeholder {
     color: var(--text-dim);
   }
 
-  .btn-send {
-    @apply rounded-xl px-5 py-2.5 text-sm font-semibold transition-[background-color,transform,opacity,box-shadow] duration-150 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40;
-    color: var(--bg-void);
-    background: linear-gradient(135deg, var(--accent-frost), var(--accent-ice));
-    box-shadow: 0 2px 12px var(--accent-glow);
+  .btn-send-circle {
+    @apply flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-full transition-[background-color,transform,opacity] duration-150 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40;
+    color: var(--bg-base);
+    background: var(--text-primary);
   }
 
-  .btn-send:hover:not(:disabled) {
-    box-shadow: 0 4px 20px rgba(125, 211, 252, 0.25);
+  .btn-send-circle:hover:not(:disabled) {
+    background: #ffffff;
+  }
+
+  .btn-stop-circle {
+    @apply flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-full transition-[background-color,transform] duration-150;
+    color: #fca5a5;
+    background: var(--danger-muted);
+    border: 1px solid rgba(248, 113, 113, 0.35);
+  }
+
+  .btn-stop-circle:hover {
+    background: rgba(248, 113, 113, 0.22);
+  }
+
+  .composer-disclaimer {
+    @apply mt-2 text-center text-[10px] leading-relaxed;
+    color: var(--text-dim);
   }
 
   .btn-ghost {
@@ -670,22 +639,20 @@
   }
 
   .icon-btn {
-    @apply flex h-10 w-10 min-h-[40px] min-w-[40px] items-center justify-center rounded-xl transition-[background-color,border-color,transform,color] duration-150 active:scale-[0.97];
+    @apply flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-lg transition-[background-color,color] duration-150 active:scale-[0.97];
     color: var(--text-secondary);
-    background: rgba(12, 18, 32, 0.6);
-    border: 1px solid var(--border-subtle);
+    background: transparent;
   }
 
   .icon-btn:hover {
-    color: var(--accent-ice);
-    background: var(--accent-glow);
-    border-color: var(--border-focus);
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.06);
   }
 
   .select-dark {
-    @apply w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors duration-150;
+    @apply w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition-colors duration-150;
     color: var(--text-primary);
-    background: rgba(5, 10, 18, 0.8);
+    background: var(--bg-input);
     border-color: var(--border-default);
   }
 
@@ -694,7 +661,7 @@
   }
 
   .error-box {
-    @apply mx-auto mt-3 max-w-4xl rounded-xl border px-4 py-2 text-sm;
+    @apply mt-2 rounded-lg border px-3 py-2 text-sm;
     color: #fca5a5;
     background: var(--danger-muted);
     border-color: rgba(248, 113, 113, 0.3);
@@ -718,18 +685,17 @@
   /* ---------- Sidebar extras ---------- */
 
   .sidebar-toolbar {
-    @apply px-5 pb-1 pt-4;
+    @apply px-3 pb-1 pt-3;
   }
 
   .sidebar-tool-btn {
-    @apply flex w-full items-center gap-2 rounded-xl border border-transparent px-3 py-2.5 text-sm transition;
+    @apply flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition;
     color: var(--text-secondary);
   }
 
   .sidebar-tool-btn:hover {
-    color: var(--accent-ice);
-    background: var(--accent-glow);
-    border-color: var(--border-subtle);
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.06);
   }
 
   .kbd {
@@ -768,27 +734,27 @@
   /* ---------- Topbar extras ---------- */
 
   .privacy-badge {
-    @apply rounded-full border px-3 py-1 text-xs;
-    color: var(--accent-ice);
-    background: var(--accent-glow);
-    border-color: var(--border-focus);
+    @apply rounded-full px-2.5 py-0.5 text-xs;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.06);
   }
 
   /* ---------- Composer extras ---------- */
 
   .mode-select {
-    @apply min-h-[40px] shrink-0 rounded-xl border px-2.5 py-2 text-xs outline-none transition-colors duration-150;
+    @apply min-h-[32px] max-w-[7.5rem] shrink-0 truncate rounded-full border px-2.5 py-1 text-xs outline-none transition-colors duration-150;
     color: var(--text-secondary);
-    background: rgba(5, 10, 18, 0.7);
-    border-color: var(--border-default);
+    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--border-subtle);
   }
 
   .mode-select:focus {
     border-color: var(--border-focus);
+    color: var(--text-primary);
   }
 
   .btn-stop {
-    @apply rounded-xl border px-6 py-3 text-sm font-semibold transition;
+    @apply rounded-lg border px-4 py-2 text-sm font-medium transition;
     color: #fca5a5;
     background: var(--danger-muted);
     border-color: rgba(248, 113, 113, 0.35);
@@ -799,7 +765,7 @@
   }
 
   .followup-list {
-    @apply mx-auto mb-3 max-w-4xl;
+    @apply mb-2;
   }
 
   .followup-chip-row {
@@ -808,15 +774,16 @@
   }
 
   .followup-chip {
-    @apply min-h-[36px] rounded-full border px-3 py-1.5 text-sm transition-[background-color,border-color,transform] duration-150 active:scale-[0.98];
-    color: var(--accent-ice);
-    background: var(--accent-glow);
-    border-color: var(--border-focus);
+    @apply min-h-[32px] rounded-full border px-3 py-1.5 text-sm transition-[background-color,border-color] duration-150 active:scale-[0.98];
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.04);
+    border-color: var(--border-subtle);
   }
 
   .followup-chip:hover {
-    background: rgba(125, 211, 252, 0.18);
-    border-color: var(--accent-frost);
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--border-default);
   }
 
   /* ---------- Message actions ---------- */
@@ -835,14 +802,14 @@
   }
 
   .toolbar-btn {
-    @apply rounded-lg border px-2.5 py-1 text-xs transition;
+    @apply rounded-md px-2 py-1 text-xs transition;
     color: var(--text-muted);
-    border-color: var(--border-subtle);
+    background: transparent;
   }
 
   .toolbar-btn:hover {
-    color: var(--accent-ice);
-    border-color: var(--border-focus);
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.06);
   }
 
   .toolbar-btn-remember:hover {
@@ -877,7 +844,7 @@
   /* ---------- Modals ---------- */
 
   .modal-overlay {
-    @apply fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm;
+    @apply fixed inset-0 z-50 flex items-start justify-center bg-black/60;
     padding: max(4vh, env(safe-area-inset-top, 0px)) 1rem 2rem;
     opacity: 0;
     visibility: hidden;
@@ -893,10 +860,9 @@
 
   .modal-panel {
     @apply flex max-h-[min(80vh,720px)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl;
-    background: var(--bg-panel);
+    background: var(--bg-elevated);
     border: 1px solid var(--border-default);
     box-shadow: var(--shadow-depth);
-    backdrop-filter: blur(var(--glass-blur));
     transform: translateY(16px) scale(0.97);
     transition: transform 0.28s var(--ease-out);
   }

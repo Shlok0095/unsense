@@ -34,6 +34,7 @@ const historyList = document.getElementById("historyList");
 const projectFilterRow = document.getElementById("projectFilterRow");
 const chatEl = document.getElementById("chat");
 const emptyState = document.getElementById("emptyState");
+const emptyStateGreeting = document.getElementById("emptyStateGreeting");
 const chatForm = document.getElementById("chatForm");
 const promptEl = document.getElementById("prompt");
 const sendBtn = document.getElementById("sendBtn");
@@ -408,6 +409,15 @@ function ensureThread() {
     chatEl.appendChild(chatThread);
   }
   return chatThread;
+}
+
+function updateEmptyStateGreeting() {
+  if (!emptyStateGreeting) return;
+  const hour = new Date().getHours();
+  let greeting = "Good evening";
+  if (hour < 12) greeting = "Good morning";
+  else if (hour < 17) greeting = "Good afternoon";
+  emptyStateGreeting.textContent = greeting;
 }
 
 function setEmptyState(visible) {
@@ -1042,5 +1052,6 @@ updatePrivacyBadge();
 updateNewSessionControls();
 renderProjectFilterRow();
 renderHistoryList();
+updateEmptyStateGreeting();
 renderConversation(currentSession()?.messages || []);
 await checkHealth();
