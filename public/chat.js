@@ -174,10 +174,10 @@ function bindChatScrollBehavior() {
     { passive: true }
   );
 
-  // Ensure source/citation links open even if a sticky layer interferes.
+  // Click handler backup for verified source rows and inline citations.
   chatEl.addEventListener("click", (event) => {
     const anchor = event.target.closest(
-      "a.source-link, a.citation-link, .msg-assistant a, .msg-assistant-wrap a"
+      "a.source-link, a.source-list-item, a.citation-link, .msg-assistant a, .msg-assistant-wrap a"
     );
     if (!anchor || !anchor.href || anchor.href.startsWith("javascript:")) return;
     if (event.defaultPrevented) return;

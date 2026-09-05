@@ -1,6 +1,7 @@
 import {
   linkifyBareUrls,
   linkifySearchCitations,
+  prepareMarkdownSources,
   repairBrokenSourceLinks,
   shortLinkLabel,
   wireCitationLinks,
@@ -36,7 +37,8 @@ function shortenLinksInHtml(html, sources) {
  * into the DOM — see enhanceRenderedElement(). */
 export function renderMarkdownToHtml(text, sources = []) {
   configureMarked();
-  let prepared = linkifyBareUrls(text);
+  let prepared = prepareMarkdownSources(text, sources);
+  prepared = linkifyBareUrls(prepared);
   prepared = linkifySearchCitations(prepared, sources);
   if (window.marked) {
     return shortenLinksInHtml(window.marked.parse(prepared), sources);
@@ -107,20 +109,45 @@ export function createSourceCards(sources = []) {
 
   const label = document.createElement("span");
   label.className = "source-links-label";
-  label.textContent = "sources:";
+  label.textContent = "verified sources — click to open";
   row.appendChild(label);
+
+  const list = document.createElement("div");
+  list.className = "source-list";
 
   for (const item of usable) {
     const link = document.createElement("a");
-    link.className = "source-link";
+    link.className = "source-list-item";
     link.href = item.url;
     link.target = "_blank";
     link.rel = "noopener noreferrer";
     link.title = item.title || item.url;
-    link.textContent = `[${item.id}] ${item.label || shortLinkLabel(item.url, item.title)}`;
-    row.appendChild(link);
+
+    const idSpan = document.createElement("span");
+    idSpan.className = "source-list-id";
+    idSpan.textContent = `[${item.id}]`;
+
+    const titleSpan = document.createElement("span");
+    titleSpan.className = "source-list-title";
+    titleSpan.textContent = item.title || item.label || shortLinkLabel(item.url, item.title);
+
+    let host = "";
+    try {
+      host = new URL(item.url).hostname.replace(/^www\./, "");
+    } catch {
+      /* ignore */
+    }
+    const hostSpan = document.createElement("span");
+    hostSpan.className = "source-list-host";
+    hostSpan.textContent = host;
+
+    link.appendChild(idSpan);
+    link.appendChild(titleSpan);
+    if (host) link.appendChild(hostSpan);
+    list.appendChild(link);
   }
 
+  row.appendChild(list);
   return row;
 }
 

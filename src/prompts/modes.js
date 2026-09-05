@@ -20,9 +20,8 @@ What the sources say, synthesized — not just restated one by one. Note
 agreement and disagreement between sources where relevant.
 ## Analysis
 What this means, context, caveats.
-## Sources
-List each source you actually cited, as [n] title — never a source you
-didn't use or one not in the provided list.`,
+Cite inline with [n] only — do not add a separate Sources section; the app
+shows verified links from search results automatically.`,
 
   code: `This is a coding/technical-implementation question. Structure your
 answer as:

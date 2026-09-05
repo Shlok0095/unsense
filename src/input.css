@@ -581,7 +581,8 @@
   .msg-assistant a,
   .msg-assistant-wrap a,
   .citation-link,
-  .source-link {
+  .source-link,
+  .source-list-item {
     @apply relative z-10 cursor-pointer underline underline-offset-2 transition-colors duration-150;
     color: var(--accent-secondary);
     text-decoration-color: rgba(167, 180, 211, 0.45);
@@ -592,7 +593,8 @@
   .msg-assistant a:hover,
   .msg-assistant-wrap a:hover,
   .citation-link:hover,
-  .source-link:hover {
+  .source-link:hover,
+  .source-list-item:hover {
     color: var(--accent-primary);
     text-decoration-color: rgba(216, 53, 96, 0.55);
   }
@@ -623,12 +625,47 @@
   }
 
   .source-links {
-    @apply relative z-10 mt-4 flex flex-wrap items-center gap-2 border-t pt-3;
+    @apply relative z-10 mt-4 flex flex-col gap-2 border-t pt-3;
     border-color: var(--border-subtle);
   }
 
   .source-links-label {
     @apply text-xs uppercase tracking-widest;
+    color: var(--text-muted);
+  }
+
+  .source-list {
+    @apply flex w-full flex-col gap-1.5;
+  }
+
+  .source-list-item {
+    @apply flex w-full items-baseline gap-2 rounded-lg border px-3 py-2.5 text-sm no-underline transition-[background-color,border-color,color] duration-150;
+    color: var(--text-secondary);
+    background: rgba(167, 180, 211, 0.06);
+    border-color: rgba(167, 180, 211, 0.16);
+    pointer-events: auto;
+    touch-action: manipulation;
+  }
+
+  .source-list-item:hover {
+    color: var(--accent-primary);
+    background: rgba(216, 53, 96, 0.10);
+    border-color: rgba(216, 53, 96, 0.28);
+    text-decoration: none;
+  }
+
+  .source-list-id {
+    @apply shrink-0 font-medium;
+    color: var(--accent-secondary);
+  }
+
+  .source-list-title {
+    @apply min-w-0 flex-1 truncate;
+    color: var(--text-primary);
+  }
+
+  .source-list-host {
+    @apply shrink-0 text-xs;
     color: var(--text-muted);
   }
 

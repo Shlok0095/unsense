@@ -1,6 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { linkifySearchCitations, shortLinkLabel } from "../../public/linkUtils.js";
+import {
+  linkifySearchCitations,
+  linkifySourceListLines,
+  prepareMarkdownSources,
+  shortLinkLabel,
+  stripTrailingSourcesSection,
+} from "../../public/linkUtils.js";
 
 const sources = [{ id: 1, url: "https://example.com/a", title: "Example" }];
 
@@ -29,4 +35,29 @@ test("shortLinkLabel combines a trimmed title with the hostname", () => {
   assert.equal(shortLinkLabel("https://www.example.com/x", "Some Title"), "Some Title · example.com");
   assert.equal(shortLinkLabel("https://example.com/x", ""), "example.com");
   assert.equal(shortLinkLabel("", "fallback"), "fallback");
+});
+
+test("linkifySourceListLines turns bibliography rows into markdown links", () => {
+  const out = linkifySourceListLines(
+    '[1] "Reverse Engineering on macOS" by [Author]',
+    sources
+  );
+  assert.match(out, /\[1 · Reverse Engineering on macOS\]\(https:\/\/example\.com\/a\)/);
+});
+
+test("stripTrailingSourcesSection removes model-generated bibliographies", () => {
+  const md = "Answer text.\n\n## Sources\n[1] fake";
+  assert.equal(stripTrailingSourcesSection(md), "Answer text.");
+});
+
+test("prepareMarkdownSources strips fake sources when none are verified", () => {
+  const md = "Answer.\n\n## Sources\n[1] \"Fake\" by [Author]";
+  assert.equal(prepareMarkdownSources(md, []), "Answer.");
+});
+
+test("prepareMarkdownSources strips fake sources section when verified exist", () => {
+  const md = "See [1] for details.\n\n## Sources\n[1] \"Title\" by [Author]";
+  const out = prepareMarkdownSources(md, sources);
+  assert.doesNotMatch(out, /## Sources/);
+  assert.equal(out, "See [1] for details.");
 });

@@ -35,6 +35,52 @@ function isBrokenHref(href) {
   return /full-url|example\.com\/|your-url|insert-url/i.test(href);
 }
 
+export function stripTrailingSourcesSection(markdown) {
+  if (!markdown) return markdown;
+  return markdown.replace(/\n#{1,3}\s*Sources(?:\s*&\s*Further\s*Reading)?\b[\s\S]*$/i, "").trimEnd();
+}
+
+/** Turn bibliography lines like `[1] "Title" by [Author]` into markdown links. */
+export function linkifySourceListLines(markdown, sources = []) {
+  if (!markdown || !sources?.length) return markdown;
+
+  const byId = new Map(
+    sources
+      .filter((result) => result?.id && result?.url)
+      .map((result) => [String(result.id), result])
+  );
+  if (!byId.size) return markdown;
+
+  return markdown.replace(/^\[(\d+)\]\s*(.+)$/gm, (full, id, rest) => {
+    const source = byId.get(id);
+    if (!source) return full;
+    const cleanTitle = rest
+      .replace(/\s*by\s*\[Author\]\s*$/i, "")
+      .replace(/^["'“”]|["'“”]$/g, "")
+      .trim();
+    const label = cleanTitle
+      ? `${id} · ${cleanTitle}`
+      : `${id} · ${shortLinkLabel(source.url, source.title)}`;
+    return `[${label}](${source.url})`;
+  });
+}
+
+export function prepareMarkdownSources(markdown, sources = []) {
+  let text = markdown || "";
+  const verified = sources.filter((s) => s?.url);
+  const hasSourcesSection = /\n#{1,3}\s*Sources\b/i.test(text);
+
+  if (verified.length) {
+    if (hasSourcesSection) text = stripTrailingSourcesSection(text);
+    text = linkifySourceListLines(text, verified);
+  } else if (hasSourcesSection) {
+    // Model invented a bibliography with no verified URLs — drop it.
+    text = stripTrailingSourcesSection(text);
+  }
+
+  return text;
+}
+
 export function linkifyBareUrls(text) {
   if (!text) return text;
 
