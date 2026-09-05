@@ -29,7 +29,8 @@ import { listProjects, createProject } from "./projects.js";
 const appRoot = document.getElementById("appRoot");
 const chatShell = document.getElementById("chatShell");
 const sidebarToggle = document.getElementById("sidebarToggle");
-const sidebarClose = document.getElementById("sidebarClose");
+const sidebarToggleSlot = document.getElementById("sidebarToggleSlot");
+const topbarToggleSlot = document.getElementById("topbarToggleSlot");
 const sidebarNewChatBtn = document.getElementById("sidebarNewChatBtn");
 const sidebarOverlay = document.getElementById("sidebarOverlay");
 const historyList = document.getElementById("historyList");
@@ -129,11 +130,21 @@ function updateBodyScrollLock() {
   document.body.classList.toggle("scroll-locked", locked);
 }
 
+function placeSidebarToggle() {
+  const collapsed = isSidebarCollapsed();
+  const slot = collapsed ? topbarToggleSlot : sidebarToggleSlot;
+  slot.appendChild(sidebarToggle);
+  const label = collapsed ? "Open panel" : "Close panel";
+  sidebarToggle.title = label;
+  sidebarToggle.setAttribute("aria-label", label);
+}
+
 function setSidebarCollapsed(collapsed) {
   appRoot.classList.toggle("sidebar-collapsed", collapsed);
   const showOverlay = isOverlaySidebar() && !collapsed;
   sidebarOverlay.classList.toggle("is-visible", showOverlay);
   sidebarOverlay.setAttribute("aria-hidden", showOverlay ? "false" : "true");
+  placeSidebarToggle();
   updateBodyScrollLock();
 }
 
@@ -885,12 +896,7 @@ thinkToggle.addEventListener("click", () => {
 // ---------------------------------------------------------------------------
 sidebarToggle.addEventListener("click", (event) => {
   event.stopPropagation();
-  if (isOverlaySidebar()) setSidebarCollapsed(false);
-  else setSidebarCollapsed(!isSidebarCollapsed());
-});
-sidebarClose.addEventListener("click", (event) => {
-  event.stopPropagation();
-  setSidebarCollapsed(true);
+  setSidebarCollapsed(!isSidebarCollapsed());
 });
 sidebarOverlay.addEventListener("click", () => setSidebarCollapsed(true));
 window.addEventListener("resize", () => {
@@ -898,6 +904,7 @@ window.addEventListener("resize", () => {
     sidebarOverlay.classList.remove("is-visible");
     sidebarOverlay.setAttribute("aria-hidden", "true");
     updateBodyScrollLock();
+    placeSidebarToggle();
     return;
   }
   if (isSidebarCollapsed()) {
@@ -907,6 +914,7 @@ window.addEventListener("resize", () => {
     sidebarOverlay.classList.add("is-visible");
     sidebarOverlay.setAttribute("aria-hidden", "false");
   }
+  placeSidebarToggle();
   updateBodyScrollLock();
 });
 
