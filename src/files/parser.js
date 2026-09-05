@@ -1,10 +1,7 @@
 import { PDFParse } from "pdf-parse";
 import officeParser, { OfficeGenerator } from "officeparser";
 import mammoth from "mammoth";
-import {
-  extractTextFromImage,
-  extractTextFromImageUrl,
-} from "./nvidiaVision.js";
+import { extractTextFromImage, extractTextFromImageUrl } from "./vision.js";
 
 const IMAGE_TYPES = new Set([
   "image/jpeg",
@@ -26,8 +23,8 @@ const OFFICE_TYPES = new Set([
   "text/csv",
 ]);
 
-const MAX_CHARS = 12000;
-const MAX_FILE_BYTES = 8 * 1024 * 1024;
+const MAX_CHARS = 20000; // raw extracted text cap, before chunking/retrieval trims further
+export const MAX_FILE_BYTES = 8 * 1024 * 1024;
 
 function trimText(text) {
   const cleaned = String(text || "").replace(/\r/g, "").trim();
@@ -45,7 +42,7 @@ async function extractPdfText(buffer) {
   }
 }
 
-async function extractPdfVision(buffer, nvidiaApiKey, pages = 2) {
+async function extractPdfVision(buffer, nvidiaApiKey, pages = 4) {
   const parser = new PDFParse({ data: buffer });
   try {
     const screenshot = await parser.getScreenshot({
@@ -86,31 +83,38 @@ export function validateUpload(file) {
   }
 }
 
+/**
+ * Extracts raw text/markdown from an uploaded file. Chunking (rag/chunker.js)
+ * happens afterward, in documentProcessor.js — this function only cares
+ * about "how do I get text out of this file format".
+ */
 export async function extractFileText(file, nvidiaApiKey) {
   validateUpload(file);
 
   const mime = file.mimetype || "";
   const name = file.originalname || "upload";
   let text = "";
+  let usedVision = false;
 
   if (IMAGE_TYPES.has(mime)) {
     if (!nvidiaApiKey) {
       throw new Error("NVIDIA_API_KEY is required for image extraction.");
     }
     text = await extractTextFromImage(file.buffer, mime, nvidiaApiKey);
+    usedVision = true;
   } else if (mime === "application/pdf") {
     text = await extractPdfText(file.buffer);
+    // Only fall back to vision OCR when the text layer looks empty/scanned —
+    // avoids OCR-ing every page unnecessarily (most PDFs have a real text layer).
     if (text.length < 80) {
       if (!nvidiaApiKey) {
-        throw new Error(
-          "Scanned PDF detected. Set NVIDIA_API_KEY for vision extraction."
-        );
+        throw new Error("Scanned PDF detected. Set NVIDIA_API_KEY for vision extraction.");
       }
       text = await extractPdfVision(file.buffer, nvidiaApiKey);
+      usedVision = true;
     }
   } else if (
-    mime ===
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
   ) {
     text = await extractDocx(file.buffer);
     if (text.length < 40) {
@@ -127,7 +131,7 @@ export async function extractFileText(file, nvidiaApiKey) {
     throw new Error(`Could not extract text from ${name}.`);
   }
 
-  return { name, mime, chars: text.length, text };
+  return { name, mime, chars: text.length, text, usedVision };
 }
 
 export async function extractFiles(files, nvidiaApiKey) {
@@ -136,13 +140,4 @@ export async function extractFiles(files, nvidiaApiKey) {
     results.push(await extractFileText(file, nvidiaApiKey));
   }
   return results;
-}
-
-export function formatAttachmentContext(extracts) {
-  if (!extracts?.length) return "";
-
-  const blocks = extracts.map(
-    (item) => `### File: ${item.name}\n${item.text}`
-  );
-  return `[Uploaded file content]\n\n${blocks.join("\n\n")}\n\n---\n\n`;
 }

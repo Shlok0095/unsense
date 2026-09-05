@@ -1,43 +1,94 @@
 import {
-  linkifyBareUrls,
-  linkifySearchCitations,
-  repairBrokenSourceLinks,
-  shortLinkLabel,
-  wireCitationLinks,
-} from "./linkUtils.js";
+  renderMarkdownToHtml,
+  enhanceRenderedElement,
+  createSourceCards,
+  createFollowupChips,
+  createMessageToolbar,
+} from "./render.js";
 import {
   clearActiveSession,
   createSession,
   deleteSession,
+  branchSession,
   getActiveSessionId,
   getSession,
   listSessions,
   resolveInitialSession,
+  searchSessions,
   setActiveSessionId,
   updateSession,
 } from "./sessions.js";
+import { flattenChunks, addDocuments } from "./documents.js";
+import * as memory from "./memory.js";
+import { loadSettings, saveSettings } from "./settings.js";
+import { listProjects, createProject } from "./projects.js";
 
+// ---------------------------------------------------------------------------
+// DOM references
+// ---------------------------------------------------------------------------
 const appRoot = document.getElementById("appRoot");
 const sidebarToggle = document.getElementById("sidebarToggle");
 const sidebarClose = document.getElementById("sidebarClose");
 const sidebarOverlay = document.getElementById("sidebarOverlay");
 const historyList = document.getElementById("historyList");
+const projectFilterRow = document.getElementById("projectFilterRow");
 const chatEl = document.getElementById("chat");
 const emptyState = document.getElementById("emptyState");
 const chatForm = document.getElementById("chatForm");
 const promptEl = document.getElementById("prompt");
 const sendBtn = document.getElementById("sendBtn");
+const stopBtn = document.getElementById("stopBtn");
+const modeSelect = document.getElementById("modeSelect");
 const topNewChatBtn = document.getElementById("topNewChatBtn");
 const attachBtn = document.getElementById("attachBtn");
 const fileInput = document.getElementById("fileInput");
 const attachmentList = document.getElementById("attachmentList");
+const followupList = document.getElementById("followupList");
 const errorBox = document.getElementById("errorBox");
+const privacyBadge = document.getElementById("privacyBadge");
 
+const searchOpenBtn = document.getElementById("searchOpenBtn");
+const searchOverlay = document.getElementById("searchOverlay");
+const searchInput = document.getElementById("searchInput");
+const searchResults = document.getElementById("searchResults");
+
+const settingsOpenBtn = document.getElementById("settingsOpenBtn");
+const settingsOverlay = document.getElementById("settingsOverlay");
+const settingsCloseBtn = document.getElementById("settingsCloseBtn");
+const settingDefaultMode = document.getElementById("settingDefaultMode");
+const settingPrivacyMode = document.getElementById("settingPrivacyMode");
+const settingWebSearch = document.getElementById("settingWebSearch");
+const settingMemoryEnabled = document.getElementById("settingMemoryEnabled");
+const memoryListEl = document.getElementById("memoryList");
+const memoryDeleteAllBtn = document.getElementById("memoryDeleteAllBtn");
+const aboutHealth = document.getElementById("aboutHealth");
+
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
 let isGenerating = false;
 let chatThread = null;
 let activeSession = resolveInitialSession();
 let pendingFiles = [];
+let activeProjectFilter = null;
+let abortController = null;
+let settings = loadSettings();
 
+// A "temporary chat" session lives only in memory for this tab — never
+// written to localStorage, gone on reload. Distinct from a real session.
+let temporarySession = null;
+
+function isTemporary() {
+  return settings.privacyMode === "temporary";
+}
+
+function currentSession() {
+  return isTemporary() ? temporarySession : activeSession;
+}
+
+// ---------------------------------------------------------------------------
+// Small helpers
+// ---------------------------------------------------------------------------
 function showError(message) {
   errorBox.textContent = message;
   errorBox.classList.remove("hidden");
@@ -59,7 +110,6 @@ function setSidebarCollapsed(collapsed) {
 }
 
 function initSidebar() {
-  // Mobile: start with sidebar closed so the chat is usable immediately from a shared link.
   setSidebarCollapsed(window.innerWidth < 768);
 }
 
@@ -72,45 +122,98 @@ function keepComposerVisible() {
 
 function updateNewSessionControls() {
   const hasSessions = listSessions().length > 0;
-  topNewChatBtn.classList.toggle("hidden", !hasSessions);
+  topNewChatBtn.classList.toggle("hidden", !hasSessions && !isTemporary());
+}
+
+function updatePrivacyBadge() {
+  const mode = settings.privacyMode;
+  if (mode === "normal") {
+    privacyBadge.classList.add("hidden");
+    return;
+  }
+  const labels = {
+    temporary: "Temporary — not saved",
+    private: "Private — memory off",
+    local: "Local model only",
+  };
+  privacyBadge.textContent = labels[mode] || mode;
+  privacyBadge.classList.remove("hidden");
 }
 
 function ensureSessionForMessage() {
+  if (isTemporary()) {
+    if (!temporarySession) {
+      temporarySession = {
+        id: `tmp_${Date.now()}`,
+        title: "temporary session",
+        messages: [],
+        documents: [],
+        conversationSummary: null,
+        summarizedThroughCount: 0,
+        mode: modeSelect.value,
+        privacyMode: "temporary",
+        updatedAt: new Date().toISOString(),
+      };
+    }
+    return temporarySession;
+  }
   if (!activeSession) {
-    activeSession = createSession();
+    activeSession = createSession({ mode: modeSelect.value, privacyMode: settings.privacyMode });
     renderHistoryList();
     updateNewSessionControls();
   }
   return activeSession;
 }
 
-sidebarToggle.addEventListener("click", (event) => {
-  event.stopPropagation();
-  if (window.innerWidth < 768) {
-    setSidebarCollapsed(false);
-  } else {
-    setSidebarCollapsed(!isSidebarCollapsed());
+// ---------------------------------------------------------------------------
+// Sidebar / history list (with lightweight project grouping)
+// ---------------------------------------------------------------------------
+function renderProjectFilterRow() {
+  const projects = listProjects();
+  projectFilterRow.innerHTML = "";
+  if (!projects.length) return;
+
+  const allBtn = document.createElement("button");
+  allBtn.type = "button";
+  allBtn.className = `project-chip${activeProjectFilter === null ? " active" : ""}`;
+  allBtn.textContent = "All";
+  allBtn.addEventListener("click", () => {
+    activeProjectFilter = null;
+    renderProjectFilterRow();
+    renderHistoryList();
+  });
+  projectFilterRow.appendChild(allBtn);
+
+  for (const project of projects) {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = `project-chip${activeProjectFilter === project.id ? " active" : ""}`;
+    chip.textContent = project.name;
+    chip.addEventListener("click", () => {
+      activeProjectFilter = project.id;
+      renderProjectFilterRow();
+      renderHistoryList();
+    });
+    projectFilterRow.appendChild(chip);
   }
-});
 
-sidebarClose.addEventListener("click", (event) => {
-  event.stopPropagation();
-  setSidebarCollapsed(true);
-});
-
-sidebarOverlay.addEventListener("click", () => {
-  setSidebarCollapsed(true);
-});
-
-window.addEventListener("resize", () => {
-  if (window.innerWidth >= 768) {
-    sidebarOverlay.classList.add("hidden");
-  }
-});
+  const addBtn = document.createElement("button");
+  addBtn.type = "button";
+  addBtn.className = "project-chip project-chip-add";
+  addBtn.textContent = "+";
+  addBtn.title = "New project";
+  addBtn.addEventListener("click", () => {
+    const name = window.prompt("Project name:");
+    if (name && createProject(name)) renderProjectFilterRow();
+  });
+  projectFilterRow.appendChild(addBtn);
+}
 
 function renderHistoryList() {
-  const sessions = listSessions();
-  const activeId = activeSession?.id || "";
+  const sessions = listSessions().filter(
+    (s) => activeProjectFilter === null || s.projectId === activeProjectFilter
+  );
+  const activeId = currentSession()?.id || "";
   historyList.innerHTML = "";
 
   if (!sessions.length) {
@@ -128,7 +231,7 @@ function renderHistoryList() {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "history-item";
-    btn.textContent = session.title;
+    btn.textContent = session.hasDocuments ? `📎 ${session.title}` : session.title;
     btn.title = session.title;
     btn.addEventListener("click", () => switchSession(session.id));
 
@@ -148,7 +251,6 @@ function renderHistoryList() {
 
 function removeSession(sessionId, event) {
   event.stopPropagation();
-
   const deletingActive = activeSession?.id === sessionId;
   deleteSession(sessionId);
 
@@ -166,30 +268,57 @@ function removeSession(sessionId, event) {
 function switchSession(sessionId) {
   const session = getSession(sessionId);
   if (!session) return;
+  temporarySession = null;
   activeSession = session;
   setActiveSessionId(sessionId);
+  modeSelect.value = session.mode || "fast";
   renderHistoryList();
   renderConversation(session.messages);
   clearError();
-  if (window.innerWidth < 768) {
-    setSidebarCollapsed(true);
+  if (window.innerWidth < 768) setSidebarCollapsed(true);
+}
+
+function startNewSession() {
+  temporarySession = isTemporary() ? null : temporarySession;
+  activeSession = null;
+  clearActiveSession();
+  clearPendingFiles();
+  modeSelect.value = settings.defaultMode;
+  renderConversation([]);
+  renderHistoryList();
+  clearError();
+  promptEl.focus();
+}
+
+function persistMessages(session, fields) {
+  if (isTemporary()) {
+    Object.assign(temporarySession, fields);
+    return temporarySession;
   }
+  if (!session) return null;
+  const updated = updateSession(session.id, fields);
+  if (updated) activeSession = updated;
+  renderHistoryList();
+  return updated;
 }
 
-function formatAttachmentContext(extracts) {
-  if (!extracts?.length) return "";
-  const blocks = extracts.map((item) => `### File: ${item.name}\n${item.text}`);
-  return `[Uploaded file content]\n\n${blocks.join("\n\n")}\n\n---\n\n`;
-}
-
+// ---------------------------------------------------------------------------
+// Attachments
+// ---------------------------------------------------------------------------
 function renderAttachmentChips() {
   attachmentList.innerHTML = "";
-  if (!pendingFiles.length) {
-    attachmentList.classList.add("hidden");
-    return;
+  const sessionDocs = currentSession()?.documents || [];
+  const hasAny = pendingFiles.length || sessionDocs.length;
+  attachmentList.classList.toggle("hidden", !hasAny);
+  if (!hasAny) return;
+
+  for (const doc of sessionDocs) {
+    const chip = document.createElement("div");
+    chip.className = "attachment-chip attachment-chip-saved";
+    chip.textContent = `📎 ${doc.filename}`;
+    attachmentList.appendChild(chip);
   }
 
-  attachmentList.classList.remove("hidden");
   for (const [index, file] of pendingFiles.entries()) {
     const chip = document.createElement("div");
     chip.className = "attachment-chip";
@@ -216,8 +345,7 @@ function renderAttachmentChips() {
 }
 
 function addPendingFiles(fileList) {
-  const merged = [...pendingFiles, ...Array.from(fileList || [])];
-  pendingFiles = merged.slice(0, 5);
+  pendingFiles = [...pendingFiles, ...Array.from(fileList || [])].slice(0, 5);
   renderAttachmentChips();
 }
 
@@ -228,28 +356,14 @@ function clearPendingFiles() {
 }
 
 attachBtn.addEventListener("click", () => fileInput.click());
-
 fileInput.addEventListener("change", () => {
   addPendingFiles(fileInput.files);
   fileInput.value = "";
 });
 
-function startNewSession() {
-  activeSession = null;
-  clearActiveSession();
-  clearPendingFiles();
-  renderConversation([]);
-  renderHistoryList();
-  clearError();
-  promptEl.focus();
-}
-
-function persistMessages(messages) {
-  if (!activeSession) return;
-  activeSession = updateSession(activeSession.id, messages) || activeSession;
-  renderHistoryList();
-}
-
+// ---------------------------------------------------------------------------
+// Message rendering
+// ---------------------------------------------------------------------------
 function ensureThread() {
   if (!chatThread) {
     chatThread = document.createElement("div");
@@ -257,104 +371,6 @@ function ensureThread() {
     chatEl.appendChild(chatThread);
   }
   return chatThread;
-}
-
-function configureMarked() {
-  if (window.marked) {
-    window.marked.setOptions({ breaks: true, gfm: true });
-  }
-}
-
-function shortenLinksInHtml(html, searchResults = []) {
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  doc.querySelectorAll("a").forEach((anchor) => {
-    const href = anchor.getAttribute("href");
-    const text = anchor.textContent?.trim() || "";
-    anchor.target = "_blank";
-    anchor.rel = "noopener noreferrer";
-    if (href && (text.startsWith("http") || text.length > 48)) {
-      anchor.textContent = shortLinkLabel(href, text);
-    }
-  });
-  let output = doc.body.innerHTML;
-  output = repairBrokenSourceLinks(output, searchResults);
-  output = wireCitationLinks(output, searchResults);
-  return output;
-}
-
-function renderMarkdown(text, searchResults = []) {
-  configureMarked();
-  let prepared = linkifyBareUrls(text);
-  prepared = linkifySearchCitations(prepared, searchResults);
-  if (window.marked) {
-    return shortenLinksInHtml(window.marked.parse(prepared), searchResults);
-  }
-  return prepared.replace(/\n/g, "<br>");
-}
-
-function createSourceLinks(results = []) {
-  const usable = results.filter((item) => item?.url);
-  if (!usable.length) return null;
-
-  const row = document.createElement("div");
-  row.className = "source-links";
-
-  const label = document.createElement("span");
-  label.className = "source-links-label";
-  label.textContent = "sources:";
-  row.appendChild(label);
-
-  for (const item of usable) {
-    const link = document.createElement("a");
-    link.className = "source-link";
-    link.href = item.url;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    link.title = item.title || item.url;
-    link.textContent = `[${item.id}] ${item.label || shortLinkLabel(item.url, item.title)}`;
-    row.appendChild(link);
-  }
-
-  return row;
-}
-
-function createUserMessage(content) {
-  const wrap = document.createElement("div");
-  wrap.className = "msg-user-wrap";
-  const bubble = document.createElement("div");
-  bubble.className = "msg-user";
-  bubble.textContent = content;
-  wrap.appendChild(bubble);
-  return wrap;
-}
-
-function createAssistantMessage(content, meta = null) {
-  const wrap = document.createElement("div");
-  wrap.className = "msg-assistant-wrap";
-  const body = document.createElement("div");
-  body.className = "msg-assistant";
-  body.innerHTML = renderMarkdown(content, meta?.webSearch?.results || []);
-
-  const sourceLinks = createSourceLinks(meta?.webSearch?.results);
-  if (sourceLinks) {
-    body.appendChild(sourceLinks);
-  }
-
-  wrap.appendChild(body);
-  return wrap;
-}
-
-function createTypingRow(label = "Thinking...") {
-  const row = document.createElement("div");
-  row.id = "typingRow";
-  row.className = "typing-row";
-  row.innerHTML = `
-    <span class="typing-dot animate-pulseSlow"></span>
-    <span class="typing-dot animate-pulseSlow [animation-delay:150ms]"></span>
-    <span class="typing-dot animate-pulseSlow [animation-delay:300ms]"></span>
-    <span>${label}</span>
-  `;
-  return row;
 }
 
 function scrollToBottom() {
@@ -369,31 +385,89 @@ function setEmptyState(visible) {
   }
 }
 
-function renderConversation(messages) {
-  chatEl.querySelectorAll(".msg-user-wrap, .msg-assistant-wrap, #typingRow").forEach((el) => el.remove());
-  setEmptyState(!messages.length);
-  if (!messages.length) return;
+function createUserMessageEl(content, index) {
+  const wrap = document.createElement("div");
+  wrap.className = "msg-user-wrap";
+  const col = document.createElement("div");
+  col.className = "msg-user-col";
 
-  const thread = ensureThread();
-  for (const message of messages) {
-    thread.appendChild(
-      message.role === "user"
-        ? createUserMessage(message.content)
-        : createAssistantMessage(message.content, message.meta)
-    );
-  }
-  scrollToBottom();
+  const bubble = document.createElement("div");
+  bubble.className = "msg-user";
+  bubble.textContent = content;
+  col.appendChild(bubble);
+
+  const toolbar = createMessageToolbar({
+    onCopy: () => navigator.clipboard.writeText(content).catch(() => {}),
+    onEdit: () => editMessage(index),
+  });
+  toolbar.classList.add("toolbar-user");
+  col.appendChild(toolbar);
+
+  wrap.appendChild(col);
+  return wrap;
 }
 
-function appendMessage(role, content, meta = null) {
-  setEmptyState(false);
-  const thread = ensureThread();
-  thread.appendChild(
-    role === "user"
-      ? createUserMessage(content)
-      : createAssistantMessage(content, meta)
-  );
-  scrollToBottom();
+function createAssistantMessageEl(content, meta, index) {
+  const wrap = document.createElement("div");
+  wrap.className = "msg-assistant-wrap";
+  const body = document.createElement("div");
+  body.className = "msg-assistant";
+  body.innerHTML = renderMarkdownToHtml(content, meta?.sources || []);
+  enhanceRenderedElement(body);
+  wrap.appendChild(body);
+
+  const sourceCards = createSourceCards(meta?.sources || []);
+  if (sourceCards) wrap.appendChild(sourceCards);
+
+  if (meta?.usedFallback) {
+    const badge = document.createElement("div");
+    badge.className = "msg-badge";
+    badge.textContent = "answered by fallback model";
+    wrap.appendChild(badge);
+  }
+  if (meta?.stopped) {
+    const badge = document.createElement("div");
+    badge.className = "msg-badge msg-badge-stopped";
+    badge.textContent = "stopped by you";
+    wrap.appendChild(badge);
+  }
+
+  const toolbar = createMessageToolbar({
+    onCopy: () => navigator.clipboard.writeText(content).catch(() => {}),
+    onRegenerate: () => regenerateFrom(index),
+    onBranch: () => doBranch(index),
+    onRemember: () => {
+      memory.remember(content);
+      renderMemoryList();
+    },
+  });
+  wrap.appendChild(toolbar);
+
+  if (meta?.followups?.length) {
+    const chips = createFollowupChips(meta.followups, (text) => sendMessage(text));
+    wrap.appendChild(chips);
+  }
+
+  return wrap;
+}
+
+function createTypingRow(label = "Thinking...") {
+  const row = document.createElement("div");
+  row.id = "typingRow";
+  row.className = "typing-row";
+  row.innerHTML = `
+    <span class="typing-dot animate-pulseSlow"></span>
+    <span class="typing-dot animate-pulseSlow [animation-delay:150ms]"></span>
+    <span class="typing-dot animate-pulseSlow [animation-delay:300ms]"></span>
+    <span class="typing-label">${label}</span>
+  `;
+  return row;
+}
+
+function setTypingLabel(label) {
+  const row = document.getElementById("typingRow");
+  const span = row?.querySelector(".typing-label");
+  if (span) span.textContent = label;
 }
 
 function showTyping(label) {
@@ -406,56 +480,112 @@ function hideTyping() {
   document.getElementById("typingRow")?.remove();
 }
 
-async function checkHealth() {
-  try {
-    const res = await fetch("/api/health");
-    const data = await res.json();
-    if (!data.ok) {
-      showError("API unavailable.");
-      return;
+function renderConversation(messages) {
+  chatEl.querySelectorAll(".msg-user-wrap, .msg-assistant-wrap, #typingRow, #streamingRow").forEach((el) =>
+    el.remove()
+  );
+  setEmptyState(!messages.length);
+  if (!messages.length) return;
+
+  const thread = ensureThread();
+  messages.forEach((message, index) => {
+    thread.appendChild(
+      message.role === "user"
+        ? createUserMessageEl(message.content, index)
+        : createAssistantMessageEl(message.content, message.meta, index)
+    );
+  });
+  scrollToBottom();
+}
+
+// ---------------------------------------------------------------------------
+// Message actions: edit / regenerate / branch
+// ---------------------------------------------------------------------------
+function editMessage(index) {
+  const session = currentSession();
+  if (!session || isGenerating) return;
+  const message = session.messages[index];
+  if (!message || message.role !== "user") return;
+
+  const truncated = session.messages.slice(0, index);
+  persistMessages(session, { messages: truncated });
+  renderConversation(truncated);
+  promptEl.value = message.content;
+  autoResizeTextarea();
+  promptEl.focus();
+}
+
+function regenerateFrom(index) {
+  const session = currentSession();
+  if (!session || isGenerating) return;
+  // Find the user message preceding this assistant message.
+  let userIndex = index - 1;
+  while (userIndex >= 0 && session.messages[userIndex].role !== "user") userIndex--;
+  if (userIndex < 0) return;
+
+  const userContent = session.messages[userIndex].content;
+  const truncated = session.messages.slice(0, userIndex);
+  persistMessages(session, { messages: truncated });
+  renderConversation(truncated);
+  sendMessage(userContent);
+}
+
+function doBranch(index) {
+  const session = currentSession();
+  if (!session || isTemporary()) return; // branching needs real persisted sessions
+  const branched = branchSession(session.id, index);
+  if (branched) switchSession(branched.id);
+}
+
+// ---------------------------------------------------------------------------
+// Sending messages (SSE streaming)
+// ---------------------------------------------------------------------------
+function parseSseChunk(buffer) {
+  const frames = buffer.split("\n\n");
+  const remainder = frames.pop() ?? "";
+  const events = [];
+  for (const frame of frames) {
+    for (const line of frame.split("\n")) {
+      if (!line.startsWith("data:")) continue;
+      try {
+        events.push(JSON.parse(line.slice(5).trim()));
+      } catch {
+        /* ignore malformed frame */
+      }
     }
-    if (!data.hasToken) {
-      showError("Server missing HF_TOKEN — set it in Vercel environment variables.");
-    }
-    if (!data.hasNvidiaKey) {
-      showError("Server missing NVIDIA_API_KEY — file uploads will not work.");
-    }
-  } catch {
-    showError("Server offline.");
   }
+  return { events, remainder };
 }
 
-function autoResizeTextarea() {
-  promptEl.style.height = "auto";
-  promptEl.style.height = `${Math.min(promptEl.scrollHeight, 192)}px`;
-}
-
-chatForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
+async function sendMessage(rawMessage) {
   if (isGenerating) return;
   clearError();
 
-  const message = promptEl.value.trim();
+  const message = (rawMessage ?? promptEl.value).trim();
   const files = [...pendingFiles];
   if (!message && !files.length) return;
 
-  ensureSessionForMessage();
+  const session = ensureSessionForMessage();
+  const historyForRequest = session.messages
+    .slice(session.summarizedThroughCount || 0)
+    .map(({ role, content }) => ({ role, content }));
 
-  const history = activeSession.messages.map(({ role, content }) => ({ role, content }));
   const displayMessage = files.length
     ? `${files.map((f) => `📎 ${f.name}`).join("\n")}${message ? `\n\n${message}` : "\n\nAnalyze the attached files."}`
     : message;
 
-  appendMessage("user", displayMessage);
-  promptEl.value = "";
-  autoResizeTextarea();
-  clearPendingFiles();
+  const userMsgIndex = session.messages.length;
+  const optimisticMessages = [...session.messages, { role: "user", content: displayMessage }];
+  persistMessages(session, { messages: optimisticMessages, mode: modeSelect.value });
+  renderConversation(optimisticMessages);
 
-  const pendingMessages = [
-    ...activeSession.messages,
-    { role: "user", content: displayMessage },
-  ];
-  persistMessages(pendingMessages);
+  if (rawMessage === undefined) {
+    promptEl.value = "";
+    autoResizeTextarea();
+  }
+  clearPendingFiles();
+  followupList.classList.add("hidden");
+  followupList.innerHTML = "";
 
   if (window.innerWidth < 768) {
     setSidebarCollapsed(true);
@@ -463,79 +593,214 @@ chatForm.addEventListener("submit", async (event) => {
   }
 
   isGenerating = true;
-  sendBtn.disabled = true;
+  sendBtn.classList.add("hidden");
+  stopBtn.classList.remove("hidden");
   attachBtn.disabled = true;
+  abortController = new AbortController();
   showTyping(files.length ? "Extracting files..." : "Thinking...");
 
+  // Snapshot of pre-turn state for a clean rollback on failure. Captured
+  // before any mutation — for a temporary chat, persistMessages() mutates
+  // the session object in place, so `session.messages` itself is not safe
+  // to read after that point.
+  const originalMessages = session.messages;
+  const originalConversationSummary = session.conversationSummary;
+
+  // Hoisted so the catch block can still access whatever streamed in
+  // before a failure/abort, and persist it instead of losing it.
+  let assistantContent = "";
+  let sourcesSoFar = [];
+  let streamingEl = null;
+
   try {
-    let attachmentContext = "";
+    let newDocuments = [];
     if (files.length) {
       const formData = new FormData();
       files.forEach((file) => formData.append("files", file));
-      const extractRes = await fetch("/api/extract-files", {
-        method: "POST",
-        body: formData,
-      });
+      const extractRes = await fetch("/api/extract-files", { method: "POST", body: formData });
       const extractData = await extractRes.json();
-      if (!extractRes.ok) {
-        throw new Error(extractData.error || "File extraction failed.");
-      }
-      attachmentContext = formatAttachmentContext(extractData.extracts);
+      if (!extractRes.ok) throw new Error(extractData.error || "File extraction failed.");
+      newDocuments = extractData.documents || [];
       showTyping("Thinking...");
     }
+
+    const sessionWithDocs = newDocuments.length
+      ? { ...session, documents: addDocuments(session, newDocuments) }
+      : session;
+    if (newDocuments.length) persistMessages(session, { documents: sessionWithDocs.documents });
 
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal: abortController.signal,
       body: JSON.stringify({
         message: message || "Analyze the attached files.",
-        history,
-        attachmentContext,
+        mode: modeSelect.value,
+        privacyMode: settings.privacyMode,
+        history: historyForRequest,
+        conversationSummary: sessionWithDocs.conversationSummary || null,
+        documentChunks: flattenChunks(sessionWithDocs),
+        memoryEnabled: settings.memoryEnabled,
+        memoryItems: settings.memoryEnabled ? memory.toRequestPayload() : [],
+        webSearchEnabled: settings.webSearchEnabled,
       }),
     });
 
-    const data = await res.json();
+    if (!res.ok || !res.body) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || `Request failed (${res.status})`);
+    }
+
     hideTyping();
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let finalPayload = null;
 
-    if (!res.ok) throw new Error(data.error || "Request failed");
-
-    const assistantMessage = {
-      role: "assistant",
-      content: data.content || "(empty response)",
-      meta: { webSearch: data.webSearch },
+    const ensureStreamingEl = () => {
+      if (streamingEl) return streamingEl;
+      streamingEl = document.createElement("div");
+      streamingEl.id = "streamingRow";
+      streamingEl.className = "msg-assistant-wrap";
+      const body = document.createElement("div");
+      body.className = "msg-assistant";
+      streamingEl.appendChild(body);
+      ensureThread().appendChild(streamingEl);
+      scrollToBottom();
+      return streamingEl;
     };
 
-    appendMessage("assistant", assistantMessage.content, assistantMessage.meta);
-    persistMessages([...pendingMessages, assistantMessage]);
+    let lastRenderAt = 0;
+    const renderStreamed = () => {
+      const now = performance.now();
+      if (now - lastRenderAt < 60) return; // throttle re-renders during fast streaming
+      lastRenderAt = now;
+      const el = ensureStreamingEl();
+      const body = el.querySelector(".msg-assistant");
+      body.innerHTML = renderMarkdownToHtml(assistantContent, sourcesSoFar);
+      scrollToBottom();
+    };
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const { events, remainder } = parseSseChunk(buffer);
+      buffer = remainder;
+
+      for (const event of events) {
+        if (event.type === "status") {
+          setTypingLabel(event.label);
+        } else if (event.type === "sources") {
+          sourcesSoFar = event.sources;
+        } else if (event.type === "delta") {
+          hideTyping();
+          assistantContent += event.text;
+          renderStreamed();
+        } else if (event.type === "done") {
+          finalPayload = event;
+        } else if (event.type === "error") {
+          throw Object.assign(new Error(event.error), { status: event.status });
+        }
+      }
+    }
+
+    hideTyping();
+    streamingEl?.remove();
+
+    const finalContent = finalPayload?.content ?? assistantContent;
+    const assistantMessage = {
+      role: "assistant",
+      content: finalContent,
+      meta: {
+        sources: finalPayload?.sources || sourcesSoFar,
+        followups: finalPayload?.followups || [],
+        usedFallback: finalPayload?.usedFallback || false,
+        provider: finalPayload?.provider,
+        model: finalPayload?.model,
+      },
+    };
+
+    appendRenderedMessage(assistantMessage, userMsgIndex + 1);
+
+    const finalMessages = [...optimisticMessages, assistantMessage];
+    const summarizedThroughCount =
+      (session.summarizedThroughCount || 0) + (finalPayload?.summarizedCount || 0);
+    persistMessages(session, {
+      messages: finalMessages,
+      conversationSummary: finalPayload?.contextSummary ?? sessionWithDocs.conversationSummary,
+      summarizedThroughCount,
+    });
   } catch (error) {
     hideTyping();
-    showError(error.message);
-    const reverted = activeSession.messages.slice(0, -1);
-    if (reverted.length) {
-      persistMessages(reverted);
-      renderConversation(reverted);
+    streamingEl?.remove();
+
+    if (error?.name === "AbortError") {
+      // User hit Stop — keep whatever streamed in so far as the final
+      // answer (marked as stopped) instead of discarding it.
+      if (assistantContent.trim()) {
+        const partialMessage = {
+          role: "assistant",
+          content: assistantContent,
+          meta: { sources: sourcesSoFar, followups: [], stopped: true },
+        };
+        appendRenderedMessage(partialMessage, userMsgIndex + 1);
+        persistMessages(session, { messages: [...optimisticMessages, partialMessage] });
+      } else {
+        revertFailedSend(session, originalMessages);
+      }
     } else {
-      deleteSession(activeSession.id);
-      activeSession = null;
-      clearActiveSession();
-      renderConversation([]);
-      updateNewSessionControls();
+      showError(error.message || "Something went wrong.");
+      revertFailedSend(session, originalMessages, { conversationSummary: originalConversationSummary });
     }
   } finally {
     isGenerating = false;
-    sendBtn.disabled = false;
+    abortController = null;
+    sendBtn.classList.remove("hidden");
+    stopBtn.classList.add("hidden");
     attachBtn.disabled = false;
   }
+}
+
+/** Rolls back an optimistically-added message on failure/no-content-abort.
+ * If this was a brand-new session with nothing in it before this attempt,
+ * remove it entirely (matches the app's lazy-session-creation model)
+ * instead of leaving an empty orphaned session behind in storage. */
+function revertFailedSend(session, originalMessages, extraFields = {}) {
+  if (!originalMessages.length && !isTemporary()) {
+    deleteSession(session.id);
+    activeSession = null;
+    clearActiveSession();
+    renderHistoryList();
+    updateNewSessionControls();
+    renderConversation([]);
+    return;
+  }
+  persistMessages(session, { messages: originalMessages, ...extraFields });
+  renderConversation(originalMessages);
+}
+
+function appendRenderedMessage(message, index) {
+  setEmptyState(false);
+  const thread = ensureThread();
+  thread.appendChild(createAssistantMessageEl(message.content, message.meta, index));
+  scrollToBottom();
+}
+
+stopBtn.addEventListener("click", () => {
+  abortController?.abort();
+});
+
+chatForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  sendMessage();
 });
 
 promptEl.addEventListener("input", autoResizeTextarea);
-
 promptEl.addEventListener("focus", keepComposerVisible);
-
 if (window.visualViewport) {
   window.visualViewport.addEventListener("resize", keepComposerVisible);
 }
-
 promptEl.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && !event.shiftKey) {
     event.preventDefault();
@@ -543,10 +808,183 @@ promptEl.addEventListener("keydown", (event) => {
   }
 });
 
+function autoResizeTextarea() {
+  promptEl.style.height = "auto";
+  promptEl.style.height = `${Math.min(promptEl.scrollHeight, 192)}px`;
+}
+
 topNewChatBtn.addEventListener("click", startNewSession);
 
+// ---------------------------------------------------------------------------
+// Sidebar toggle
+// ---------------------------------------------------------------------------
+sidebarToggle.addEventListener("click", (event) => {
+  event.stopPropagation();
+  if (window.innerWidth < 768) setSidebarCollapsed(false);
+  else setSidebarCollapsed(!isSidebarCollapsed());
+});
+sidebarClose.addEventListener("click", (event) => {
+  event.stopPropagation();
+  setSidebarCollapsed(true);
+});
+sidebarOverlay.addEventListener("click", () => setSidebarCollapsed(true));
+window.addEventListener("resize", () => {
+  if (window.innerWidth >= 768) sidebarOverlay.classList.add("hidden");
+});
+
+// ---------------------------------------------------------------------------
+// Settings modal
+// ---------------------------------------------------------------------------
+function renderMemoryList() {
+  const items = memory.listMemories();
+  memoryListEl.innerHTML = "";
+  if (!items.length) {
+    const empty = document.createElement("p");
+    empty.className = "settings-hint";
+    empty.textContent = "No memories saved yet.";
+    memoryListEl.appendChild(empty);
+    return;
+  }
+  for (const item of items) {
+    const row = document.createElement("div");
+    row.className = "memory-item";
+    const text = document.createElement("span");
+    text.textContent = item.text;
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "memory-item-delete";
+    del.textContent = "×";
+    del.addEventListener("click", () => {
+      memory.forget(item.id);
+      renderMemoryList();
+    });
+    row.appendChild(text);
+    row.appendChild(del);
+    memoryListEl.appendChild(row);
+  }
+}
+
+function openSettings() {
+  settingDefaultMode.value = settings.defaultMode;
+  settingPrivacyMode.value = settings.privacyMode;
+  settingWebSearch.checked = settings.webSearchEnabled;
+  settingMemoryEnabled.checked = settings.memoryEnabled;
+  renderMemoryList();
+  settingsOverlay.classList.remove("hidden");
+}
+
+function closeSettings() {
+  settingsOverlay.classList.add("hidden");
+}
+
+settingsOpenBtn.addEventListener("click", openSettings);
+settingsCloseBtn.addEventListener("click", closeSettings);
+settingsOverlay.addEventListener("click", (event) => {
+  if (event.target === settingsOverlay) closeSettings();
+});
+
+settingDefaultMode.addEventListener("change", () => {
+  settings = saveSettings({ defaultMode: settingDefaultMode.value });
+});
+settingPrivacyMode.addEventListener("change", () => {
+  settings = saveSettings({ privacyMode: settingPrivacyMode.value });
+  updatePrivacyBadge();
+  updateNewSessionControls();
+});
+settingWebSearch.addEventListener("change", () => {
+  settings = saveSettings({ webSearchEnabled: settingWebSearch.checked });
+});
+settingMemoryEnabled.addEventListener("change", () => {
+  settings = saveSettings({ memoryEnabled: settingMemoryEnabled.checked });
+});
+memoryDeleteAllBtn.addEventListener("click", () => {
+  if (window.confirm("Delete all saved memories? This cannot be undone.")) {
+    memory.deleteAll();
+    renderMemoryList();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Ctrl+K search
+// ---------------------------------------------------------------------------
+function openSearch() {
+  searchOverlay.classList.remove("hidden");
+  searchInput.value = "";
+  searchResults.innerHTML = "";
+  searchInput.focus();
+}
+
+function closeSearch() {
+  searchOverlay.classList.add("hidden");
+}
+
+searchOpenBtn.addEventListener("click", openSearch);
+searchOverlay.addEventListener("click", (event) => {
+  if (event.target === searchOverlay) closeSearch();
+});
+
+document.addEventListener("keydown", (event) => {
+  const mod = event.ctrlKey || event.metaKey;
+  if (mod && event.key.toLowerCase() === "k") {
+    event.preventDefault();
+    openSearch();
+  } else if (event.key === "Escape") {
+    if (!searchOverlay.classList.contains("hidden")) closeSearch();
+    if (!settingsOverlay.classList.contains("hidden")) closeSettings();
+  }
+});
+
+searchInput.addEventListener("input", () => {
+  const results = searchSessions(searchInput.value);
+  searchResults.innerHTML = "";
+  for (const result of results) {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "search-result-row";
+    row.innerHTML = `<span class="search-result-title">${result.title}</span>${
+      result.snippet ? `<span class="search-result-snippet">${result.snippet}</span>` : ""
+    }`;
+    row.addEventListener("click", () => {
+      switchSession(result.id);
+      closeSearch();
+    });
+    searchResults.appendChild(row);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Health check
+// ---------------------------------------------------------------------------
+async function checkHealth() {
+  try {
+    const res = await fetch("/api/health");
+    const data = await res.json();
+    if (!data.ok) {
+      showError("API unavailable.");
+      aboutHealth.textContent = "API unavailable.";
+      return;
+    }
+    if (!data.hasToken) showError("Server missing HF_TOKEN — set it in Vercel environment variables.");
+    if (!data.hasNvidiaKey) {
+      // Non-fatal — plain-text PDFs/Office files still work without it.
+    }
+    aboutHealth.textContent = `Models: ${data.models?.fast || "unknown"} (fast) / ${
+      data.models?.deep || "unknown"
+    } (deep). Local/Ollama: ${data.hasOllama ? "available" : "not configured"}.`;
+  } catch {
+    showError("Server offline.");
+    aboutHealth.textContent = "Server offline.";
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Init
+// ---------------------------------------------------------------------------
+modeSelect.value = activeSession?.mode || settings.defaultMode;
 initSidebar();
+updatePrivacyBadge();
 updateNewSessionControls();
+renderProjectFilterRow();
 renderHistoryList();
-renderConversation(activeSession?.messages || []);
+renderConversation(currentSession()?.messages || []);
 await checkHealth();

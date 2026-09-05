@@ -1,3 +1,5 @@
+import { isSafeUrlToFetch } from "../security/ssrf.js";
+
 const NVIDIA_BASE = "https://integrate.api.nvidia.com/v1/chat/completions";
 export const NVIDIA_VISION_MODEL = "nvidia/nemotron-nano-12b-v2-vl";
 
@@ -30,8 +32,7 @@ async function callVisionApi(imageUrl, apiKey) {
 
   const data = await res.json();
   if (!res.ok) {
-    const message =
-      data?.error?.message || data?.detail || "NVIDIA vision API error";
+    const message = data?.error?.message || data?.detail || "NVIDIA vision API error";
     const error = new Error(message);
     error.status = res.status;
     throw error;
@@ -50,6 +51,14 @@ export async function extractTextFromImage(buffer, mimeType, apiKey) {
   return callVisionApi(dataUrl, apiKey);
 }
 
+/**
+ * Used for PDF page screenshots, which arrive as data: URLs generated
+ * locally — but this also accepts http(s) URLs in principle, so it is
+ * SSRF-guarded the same as every other server-side fetch of a URL.
+ */
 export async function extractTextFromImageUrl(imageUrl, apiKey) {
+  if (imageUrl.startsWith("http") && !(await isSafeUrlToFetch(imageUrl))) {
+    throw new Error("Refusing to fetch that image URL.");
+  }
   return callVisionApi(imageUrl, apiKey);
 }

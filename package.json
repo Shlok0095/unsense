@@ -10,7 +10,9 @@
     "build:css": "tailwindcss -i ./src/input.css -o ./public/styles.css --minify",
     "dev:css": "tailwindcss -i ./src/input.css -o ./public/styles.css --watch",
     "dev": "node src/server.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "test": "node --test",
+    "eval": "node eval/benchmark.js"
   },
   "dependencies": {
     "dotenv": "^16.4.7",

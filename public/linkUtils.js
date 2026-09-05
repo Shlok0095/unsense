@@ -49,11 +49,28 @@ export function linkifySearchCitations(markdown, results = []) {
 
   let text = markdown;
 
+  // Pass 1: bare mentions of a source's domain in plain prose (e.g. "...
+  // according to example.com ...") become links. This MUST run before pass 2
+  // inserts any URLs — a URL for one source can itself contain another
+  // source's host as a substring (e.g. "https://example.com/a" contains
+  // "example.com"), and running this pass afterward would corrupt that URL
+  // by linkifying the host text found inside it.
+  for (const result of results) {
+    const { url } = result;
+    if (!url) continue;
+    const host = hostFromUrl(url);
+    if (!host) continue;
+    text = text.replace(
+      new RegExp(`(?<!\\]\\()\\b${escapeRegex(host)}\\b(?!\\])`, "gi"),
+      `[${host}](${url})`
+    );
+  }
+
+  // Pass 2: numeric citation markers ([1], [1][site-name]) become links.
   for (const result of results) {
     const { id, url } = result;
     if (!id || !url) continue;
 
-    const host = hostFromUrl(url);
     const label = shortLinkLabel(url, result.title);
 
     text = text.replace(
@@ -65,13 +82,6 @@ export function linkifySearchCitations(markdown, results = []) {
       new RegExp(`\\[${id}\\](?!\\()`, "g"),
       `[${id} · ${label}](${url})`
     );
-
-    if (host) {
-      text = text.replace(
-        new RegExp(`(?<!\\]\\()\\b${escapeRegex(host)}\\b(?!\\])`, "gi"),
-        `[${host}](${url})`
-      );
-    }
   }
 
   return text;

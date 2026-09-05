@@ -2,8 +2,6 @@ import { handleHealth } from "./handlers/health.js";
 import { handleChat } from "./handlers/chat.js";
 import { handleExtractFiles } from "./handlers/extractFiles.js";
 
-export { formatAttachmentContext } from "./fileExtract.js";
-
 const routes = {
   get: new Map(),
   post: new Map(),

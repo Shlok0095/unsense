@@ -111,8 +111,17 @@
       @apply gap-2 p-2 pl-3;
     }
 
-    .btn-send {
+    .btn-send,
+    .btn-stop {
       @apply px-4 py-3;
+    }
+
+    .mode-select {
+      @apply max-w-[4.5rem] px-1.5 text-[11px];
+    }
+
+    .privacy-badge {
+      @apply px-2 py-0.5 text-[10px];
     }
 
     .empty-state h2 {
@@ -361,5 +370,217 @@
 
   .typing-dot {
     @apply h-2 w-2 rounded-full bg-neon/70;
+  }
+
+  /* ---------- Sidebar extras: search / settings / projects ---------- */
+
+  .sidebar-toolbar {
+    @apply px-5 pb-1 pt-4;
+  }
+
+  .sidebar-tool-btn {
+    @apply flex w-full items-center gap-2 rounded-lg border border-transparent px-3 py-2.5 text-sm text-slate-400 transition hover:border-neon/20 hover:bg-neon/5 hover:text-neon;
+  }
+
+  .kbd {
+    @apply ml-auto rounded border border-edge bg-void/70 px-1.5 py-0.5 text-[10px] text-slate-500;
+  }
+
+  .project-filter-row {
+    @apply mb-2 flex flex-wrap gap-1.5;
+  }
+
+  .project-chip {
+    @apply rounded-full border border-neon/20 bg-void/50 px-3 py-1 text-xs text-slate-400 transition hover:border-neon/40 hover:text-neon;
+  }
+
+  .project-chip.active {
+    @apply border-neon/50 bg-neon/10 text-neon;
+  }
+
+  .project-chip-add {
+    @apply font-bold;
+  }
+
+  /* ---------- Topbar extras ---------- */
+
+  .privacy-badge {
+    @apply rounded-full border border-cyan/30 bg-cyan/10 px-3 py-1 text-xs text-cyan;
+  }
+
+  /* ---------- Composer extras: mode select, stop button ---------- */
+
+  .mode-select {
+    @apply shrink-0 rounded-lg border border-edge bg-void/70 px-2 py-2 text-xs text-slate-300 outline-none focus:border-neon/50;
+  }
+
+  .btn-stop {
+    @apply rounded-lg border border-danger/50 bg-danger/10 px-6 py-3 text-sm font-bold text-red-300 transition hover:bg-danger/20;
+  }
+
+  .followup-list {
+    @apply mx-auto mb-3 max-w-4xl;
+  }
+
+  .followup-chip-row {
+    @apply mt-4 flex flex-wrap gap-2 border-t border-neon/10 pt-3;
+  }
+
+  .followup-chip {
+    @apply rounded-full border border-cyan/25 bg-cyan/5 px-3 py-1.5 text-sm text-cyan transition hover:border-cyan/50 hover:bg-cyan/10;
+  }
+
+  /* ---------- Message actions ---------- */
+
+  .msg-user-col {
+    @apply flex max-w-[85%] flex-col items-end gap-1.5;
+  }
+
+  .message-toolbar {
+    @apply flex flex-wrap gap-1 opacity-0 transition focus-within:opacity-100 group-hover:opacity-100;
+  }
+
+  .msg-assistant-wrap:hover .message-toolbar,
+  .msg-user-wrap:hover .message-toolbar {
+    @apply opacity-100;
+  }
+
+  .toolbar-btn {
+    @apply rounded-md border border-edge px-2.5 py-1 text-xs text-slate-500 transition hover:border-neon/40 hover:text-neon;
+  }
+
+  .toolbar-btn-remember {
+    @apply hover:border-cyan/40 hover:text-cyan;
+  }
+
+  .msg-badge-stopped {
+    @apply border-danger/30 bg-danger/5 text-red-300;
+  }
+
+  /* ---------- Code blocks ---------- */
+
+  .code-copy-btn {
+    @apply absolute right-2 top-2 rounded border border-edge bg-void/80 px-2 py-1 text-[10px] text-slate-400 transition hover:border-neon/40 hover:text-neon;
+  }
+
+  .msg-assistant .katex {
+    color: inherit;
+  }
+
+  /* ---------- Modals: settings + search ---------- */
+
+  .modal-overlay {
+    @apply fixed inset-0 z-50 flex items-start justify-center bg-black/70 backdrop-blur-sm;
+    padding: 8vh 1rem 2rem;
+  }
+
+  .modal-overlay.hidden {
+    display: none;
+  }
+
+  .modal-panel {
+    @apply flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-neon/25 bg-panel shadow-panel;
+  }
+
+  .modal-header {
+    @apply flex items-center justify-between border-b border-neon/15 px-6 py-4;
+  }
+
+  .modal-header h2 {
+    @apply text-lg font-bold text-white;
+  }
+
+  .modal-body {
+    @apply flex-1 space-y-6 overflow-y-auto px-6 py-5;
+  }
+
+  .settings-section h3 {
+    @apply mb-3 text-xs font-bold uppercase tracking-wider text-neon;
+  }
+
+  .settings-row {
+    @apply mb-3 flex items-center justify-between gap-4 text-sm text-slate-300;
+  }
+
+  .settings-row select {
+    @apply max-w-[60%];
+  }
+
+  .settings-row-toggle {
+    @apply justify-between;
+  }
+
+  .toggle {
+    @apply h-5 w-9 shrink-0 cursor-pointer appearance-none rounded-full border border-edge bg-void/70 transition;
+  }
+
+  .toggle:checked {
+    @apply border-neon/60 bg-neon/40;
+  }
+
+  .settings-hint {
+    @apply mb-3 text-xs leading-relaxed text-slate-500;
+  }
+
+  .memory-list {
+    @apply mb-3 flex max-h-48 flex-col gap-1.5 overflow-y-auto;
+  }
+
+  .memory-item {
+    @apply flex items-center justify-between gap-2 rounded-lg border border-edge bg-void/50 px-3 py-2 text-xs text-slate-300;
+  }
+
+  .memory-item span {
+    @apply min-w-0 flex-1 truncate;
+  }
+
+  .memory-item-delete {
+    @apply text-base leading-none text-slate-500 hover:text-danger;
+  }
+
+  .btn-ghost-danger {
+    @apply rounded-lg border border-danger/30 px-4 py-2 text-xs text-red-300 transition hover:border-danger/60 hover:bg-danger/10;
+  }
+
+  .search-panel {
+    @apply max-w-xl gap-0 p-0;
+  }
+
+  .search-input-row {
+    @apply flex items-center gap-3 border-b border-neon/15 px-5 py-4 text-neon;
+  }
+
+  .search-input-row input {
+    @apply flex-1 bg-transparent text-base text-slate-100 outline-none placeholder:text-slate-600;
+  }
+
+  .search-results {
+    @apply max-h-[50vh] overflow-y-auto p-2;
+  }
+
+  .search-result-row {
+    @apply flex w-full flex-col items-start gap-0.5 rounded-lg px-4 py-2.5 text-left transition hover:bg-neon/5;
+  }
+
+  .search-result-title {
+    @apply text-sm text-slate-200;
+  }
+
+  .search-result-snippet {
+    @apply truncate text-xs text-slate-500;
+  }
+
+  .attachment-chip-saved {
+    @apply border-neon/15 bg-void/40 text-slate-400;
+  }
+
+  @media (max-width: 767px) {
+    .modal-overlay {
+      padding: 4vh 0.75rem;
+    }
+
+    .modal-panel {
+      max-height: 90vh;
+    }
   }
 }

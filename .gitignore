@@ -11,5 +11,4 @@ requirements.txt
 scripts/build-installer.ps1
 scripts/build-portable.js
 scripts/installer.iss
-scripts/test-api.js
 server.js
