@@ -579,21 +579,40 @@
   }
 
   .msg-assistant a,
-  .citation-link {
-    @apply cursor-pointer underline underline-offset-2 transition-colors duration-150;
-    color: var(--accent-frost);
-    text-decoration-color: rgba(56, 189, 248, 0.35);
+  .msg-assistant-wrap a,
+  .citation-link,
+  .source-link {
+    @apply relative z-10 cursor-pointer underline underline-offset-2 transition-colors duration-150;
+    color: var(--accent-secondary);
+    text-decoration-color: rgba(167, 180, 211, 0.45);
     word-break: break-word;
     pointer-events: auto;
   }
 
   .msg-assistant a:hover,
-  .citation-link:hover {
-    color: var(--accent-ice);
+  .msg-assistant-wrap a:hover,
+  .citation-link:hover,
+  .source-link:hover {
+    color: var(--accent-primary);
+    text-decoration-color: rgba(216, 53, 96, 0.55);
   }
 
   .citation-link {
     @apply font-medium;
+  }
+
+  .source-link {
+    @apply inline-flex no-underline rounded-full px-3 py-1 text-sm transition-[background-color,color] duration-150;
+    background: rgba(167, 180, 211, 0.08);
+    border: 1px solid rgba(167, 180, 211, 0.18);
+    touch-action: manipulation;
+  }
+
+  .source-link:hover {
+    color: var(--accent-primary);
+    background: rgba(216, 53, 96, 0.10);
+    border-color: rgba(216, 53, 96, 0.30);
+    text-decoration: none;
   }
 
   .msg-badge {
@@ -604,7 +623,7 @@
   }
 
   .source-links {
-    @apply mt-4 flex flex-wrap items-center gap-2 border-t pt-3;
+    @apply relative z-10 mt-4 flex flex-wrap items-center gap-2 border-t pt-3;
     border-color: var(--border-subtle);
   }
 
@@ -613,31 +632,19 @@
     color: var(--text-muted);
   }
 
-  .source-link {
-    @apply cursor-pointer rounded-full px-3 py-1 text-sm no-underline transition-[background-color] duration-150;
-    color: var(--text-secondary);
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid var(--border-subtle);
-    pointer-events: auto;
-    touch-action: manipulation;
-  }
-
-  .source-link:hover {
-    color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.08);
-  }
-
   /* ---------- Composer ---------- */
 
   .composer {
     @apply sticky bottom-0 z-20 shrink-0 px-4 py-3 lg:px-6;
     background: linear-gradient(to top, var(--bg-base) 65%, transparent);
     padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+    pointer-events: none;
   }
 
   .composer-inner {
     @apply mx-auto w-full;
     max-width: var(--content-max);
+    pointer-events: auto;
   }
 
   .attachment-list {

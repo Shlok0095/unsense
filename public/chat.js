@@ -173,6 +173,17 @@ function bindChatScrollBehavior() {
     },
     { passive: true }
   );
+
+  // Ensure source/citation links open even if a sticky layer interferes.
+  chatEl.addEventListener("click", (event) => {
+    const anchor = event.target.closest(
+      "a.source-link, a.citation-link, .msg-assistant a, .msg-assistant-wrap a"
+    );
+    if (!anchor || !anchor.href || anchor.href.startsWith("javascript:")) return;
+    if (event.defaultPrevented) return;
+    event.preventDefault();
+    window.open(anchor.href, "_blank", "noopener,noreferrer");
+  });
 }
 
 function keepComposerVisible() {
@@ -747,6 +758,7 @@ async function sendMessage(rawMessage) {
       const el = ensureStreamingEl();
       const body = el.querySelector(".msg-assistant");
       body.innerHTML = renderMarkdownToHtml(assistantContent, sourcesSoFar);
+      enhanceRenderedElement(body);
       scrollToBottom();
     };
 

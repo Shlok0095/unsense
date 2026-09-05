@@ -88,8 +88,18 @@ export function enhanceRenderedElement(container) {
   }
 }
 
+function normalizeSourceUrl(url) {
+  if (!url || typeof url !== "string") return "";
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
 export function createSourceCards(sources = []) {
-  const usable = sources.filter((item) => item?.url);
+  const usable = sources
+    .map((item) => ({ ...item, url: normalizeSourceUrl(item?.url) }))
+    .filter((item) => item.url);
   if (!usable.length) return null;
 
   const row = document.createElement("div");
