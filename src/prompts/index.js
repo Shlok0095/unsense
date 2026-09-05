@@ -7,6 +7,6 @@ export { getModePrompt, MODE_PROMPTS } from "./modes.js";
 /** Recent-turns window before the context manager's summarization kicks in. */
 export const CONTEXT_WINDOW_MESSAGES = 16;
 
-export function buildSystemPrompt(mode) {
-  return `${BASE_SYSTEM_PROMPT}\n\n${getModePrompt(mode)}`;
+export function buildSystemPrompt(mode, { thinkRequested = false } = {}) {
+  return `${BASE_SYSTEM_PROMPT}\n\n${getModePrompt(mode, { thinkRequested })}`;
 }

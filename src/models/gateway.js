@@ -15,6 +15,10 @@ import { routeModel } from "./modelRouter.js";
 
 const PROVIDERS = { hf, ollama };
 
+function generationProfileForMode(mode) {
+  return mode === "fast" ? "fast" : "deep";
+}
+
 function adapterFor(provider) {
   const adapter = PROVIDERS[provider];
   if (!adapter) throw new Error(`Unknown model provider: ${provider}`);
@@ -51,6 +55,7 @@ export async function generate({
         max_tokens: maxTokens,
         temperature,
         signal,
+        generationProfile: generationProfileForMode(mode),
       });
       return { ...result, provider, model, usedFallback: i > 0 };
     } catch (error) {
@@ -99,6 +104,7 @@ export async function* generateStream({
       max_tokens: maxTokens,
       temperature,
       signal,
+      generationProfile: generationProfileForMode(mode),
     });
 
     let startedStreaming = false;

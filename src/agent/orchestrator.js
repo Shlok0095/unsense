@@ -35,11 +35,11 @@ const MODE_TEMPERATURE = {
 };
 
 const MODE_MAX_TOKENS = {
-  fast: 2048,
-  think: 4096,
-  research: 4096,
-  analyze: 4096,
-  code: 4096,
+  fast: 4096,
+  think: 8192,
+  research: 8192,
+  analyze: 8192,
+  code: 8192,
 };
 
 export async function* runOrchestration({
@@ -130,7 +130,7 @@ export async function* runOrchestration({
     : userMessage;
 
   const messages = sanitizeMessages([
-    { role: "system", content: buildSystemPrompt(mode) },
+    { role: "system", content: buildSystemPrompt(mode, { thinkRequested }) },
     ...recentHistory.map(({ role, content }) => ({ role, content })),
     { role: "user", content: finalUserContent },
   ]);

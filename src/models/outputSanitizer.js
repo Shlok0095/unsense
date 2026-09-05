@@ -117,7 +117,7 @@ export function createStreamSanitizer({ maxCharRun = 48 } = {}) {
   let runLength = 0;
 
   function noteChar(ch) {
-    if (!ch) return false;
+    if (!ch || /\s/.test(ch)) return false;
     if (ch === lastChar) {
       runLength += 1;
       if (runLength > maxCharRun) {
@@ -167,10 +167,9 @@ export function createStreamSanitizer({ maxCharRun = 48 } = {}) {
     },
 
     finish() {
-      if (stopped) return { text: "", stopped: true };
       const tail = sanitizeAssistantOutput(buffer);
       buffer = "";
-      return { text: tail, stopped: false };
+      return { text: tail, stopped };
     },
   };
 }

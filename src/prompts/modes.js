@@ -14,12 +14,12 @@ question, not from a template.`,
   research: `This is a research/current-events question. Structure your
 answer as:
 ## Summary
-A direct 2-4 sentence answer.
+A substantive opening — enough context to stand alone, not a one-line stub.
 ## Evidence
 What the sources say, synthesized — not just restated one by one. Note
 agreement and disagreement between sources where relevant.
 ## Analysis
-What this means, context, caveats.
+What this means, context, caveats — develop this fully.
 Cite inline with [n] only — do not add a separate Sources section; the app
 shows verified links from search results automatically.`,
 
@@ -51,9 +51,17 @@ A concise takeaway.`,
   think: `This question benefits from careful, thorough reasoning (Think mode).
 Work through it step by step in your visible answer — show reasoning, important
 nuances, and edge cases before your conclusion. Depth matters more than brevity.
+Write a comprehensive answer: multiple paragraphs, concrete examples, and real
+detail. Do not stop at a short summary when the topic warrants more.
 Use structure only where it genuinely helps readability.`,
 };
 
-export function getModePrompt(mode) {
-  return MODE_PROMPTS[mode] || MODE_PROMPTS.fast;
+export const THINK_DEPTH_OVERLAY = `Think mode is ON — the user explicitly asked
+for a deep answer. Be thorough and complete. Prefer full explanations over terse
+stubs; cover steps, examples, caveats, and follow-through.`;
+
+export function getModePrompt(mode, { thinkRequested = false } = {}) {
+  const base = MODE_PROMPTS[mode] || MODE_PROMPTS.fast;
+  if (!thinkRequested || mode === "fast") return base;
+  return `${base}\n\n${THINK_DEPTH_OVERLAY}`;
 }

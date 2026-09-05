@@ -18,6 +18,7 @@ export async function chatCompletion({
   max_tokens = DEFAULT_MAX_OUTPUT_TOKENS,
   temperature = 0.8,
   signal,
+  generationProfile = "fast",
 }) {
   return callChatCompletion({
     url: HF_BASE_URL,
@@ -28,6 +29,7 @@ export async function chatCompletion({
     max_tokens,
     temperature,
     signal,
+    generationProfile,
   });
 }
 
@@ -38,6 +40,7 @@ export async function* chatCompletionStream({
   max_tokens = DEFAULT_MAX_OUTPUT_TOKENS,
   temperature = 0.75,
   signal,
+  generationProfile = "fast",
 }) {
   yield* streamChatCompletion({
     url: HF_BASE_URL,
@@ -48,5 +51,6 @@ export async function* chatCompletionStream({
     max_tokens,
     temperature,
     signal,
+    generationProfile,
   });
 }

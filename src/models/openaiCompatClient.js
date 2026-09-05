@@ -18,7 +18,26 @@ function stripTemplateLeakage(text) {
 const DEFAULT_FREQUENCY_PENALTY = 0.35;
 const DEFAULT_PRESENCE_PENALTY = 0.1;
 
-function buildCompletionBody({ model, messages, max_tokens, temperature, stream }) {
+const GENERATION_PROFILES = {
+  fast: {
+    frequency_penalty: DEFAULT_FREQUENCY_PENALTY,
+    presence_penalty: DEFAULT_PRESENCE_PENALTY,
+  },
+  deep: {
+    frequency_penalty: 0.05,
+    presence_penalty: 0.02,
+  },
+};
+
+function buildCompletionBody({
+  model,
+  messages,
+  max_tokens,
+  temperature,
+  stream,
+  generationProfile = "fast",
+}) {
+  const penalties = GENERATION_PROFILES[generationProfile] ?? GENERATION_PROFILES.fast;
   return {
     model,
     messages,
@@ -26,8 +45,8 @@ function buildCompletionBody({ model, messages, max_tokens, temperature, stream 
     temperature,
     stream,
     stop: CHAT_STOP_SEQUENCES,
-    frequency_penalty: DEFAULT_FREQUENCY_PENALTY,
-    presence_penalty: DEFAULT_PRESENCE_PENALTY,
+    frequency_penalty: penalties.frequency_penalty,
+    presence_penalty: penalties.presence_penalty,
   };
 }
 
@@ -72,6 +91,7 @@ export async function callChatCompletion({
   max_tokens,
   temperature = 0.8,
   signal,
+  generationProfile = "fast",
 }) {
   let upstream;
   try {
@@ -79,7 +99,16 @@ export async function callChatCompletion({
       method: "POST",
       signal,
       headers: { "Content-Type": "application/json", ...headers },
-      body: JSON.stringify(buildCompletionBody({ model, messages, max_tokens, temperature, stream: false })),
+      body: JSON.stringify(
+        buildCompletionBody({
+          model,
+          messages,
+          max_tokens,
+          temperature,
+          stream: false,
+          generationProfile,
+        })
+      ),
     });
   } catch (error) {
     recordFailure(providerName, model, error);
@@ -129,6 +158,7 @@ export async function* streamChatCompletion({
   max_tokens,
   temperature = 0.75,
   signal,
+  generationProfile = "fast",
 }) {
   let upstream;
   try {
@@ -136,7 +166,16 @@ export async function* streamChatCompletion({
       method: "POST",
       signal,
       headers: { "Content-Type": "application/json", ...headers },
-      body: JSON.stringify(buildCompletionBody({ model, messages, max_tokens, temperature, stream: true })),
+      body: JSON.stringify(
+        buildCompletionBody({
+          model,
+          messages,
+          max_tokens,
+          temperature,
+          stream: true,
+          generationProfile,
+        })
+      ),
     });
   } catch (error) {
     recordFailure(providerName, model, error);

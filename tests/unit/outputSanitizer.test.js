@@ -48,6 +48,14 @@ test("createStreamSanitizer stops at markers split across chunks", () => {
   assert.equal(c.stopped, true);
 });
 
+test("createStreamSanitizer does not stop on long newline runs", () => {
+  const sanitizer = createStreamSanitizer({ maxCharRun: 20 });
+  const chunk = "\n".repeat(80);
+  const result = sanitizer.push(chunk);
+  assert.equal(result.stopped, false);
+  assert.equal(result.text.length, 80);
+});
+
 test("createStreamSanitizer stops on runaway single-character repetition", () => {
   const sanitizer = createStreamSanitizer({ maxCharRun: 20 });
   const chunk = "!".repeat(30);

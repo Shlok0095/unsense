@@ -8,7 +8,10 @@ import { getModelConfig, hasOllama, getOllamaModel } from "../config.js";
 
 const MODE_TIER = {
   fast: "fast",
-  think: "deep",
+  // General reasoning stays on the primary model — deep-tier models tend to
+  // answer in short, polished stubs while the uncensored primary rambles more
+  // usefully for this app. Specialized intents still use deep/code tiers.
+  think: "fast",
   research: "deep",
   analyze: "deep",
   code: "code",
