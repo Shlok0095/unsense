@@ -103,14 +103,51 @@ function isSidebarCollapsed() {
   return appRoot.classList.contains("sidebar-collapsed");
 }
 
+function isOverlaySidebar() {
+  return window.innerWidth < 1024;
+}
+
+function updateBodyScrollLock() {
+  const locked =
+    (isOverlaySidebar() && !isSidebarCollapsed()) ||
+    settingsOverlay.classList.contains("is-open") ||
+    searchOverlay.classList.contains("is-open");
+  document.body.classList.toggle("scroll-locked", locked);
+}
+
 function setSidebarCollapsed(collapsed) {
   appRoot.classList.toggle("sidebar-collapsed", collapsed);
-  const isMobile = window.innerWidth < 768;
-  sidebarOverlay.classList.toggle("hidden", collapsed || !isMobile);
+  const showOverlay = isOverlaySidebar() && !collapsed;
+  sidebarOverlay.classList.toggle("is-visible", showOverlay);
+  sidebarOverlay.setAttribute("aria-hidden", showOverlay ? "false" : "true");
+  updateBodyScrollLock();
 }
 
 function initSidebar() {
-  setSidebarCollapsed(window.innerWidth < 768);
+  setSidebarCollapsed(isOverlaySidebar());
+}
+
+let stickToBottom = true;
+
+function scrollToBottom({ smooth = false, force = false } = {}) {
+  if (!force && !stickToBottom) return;
+  const distance = chatEl.scrollHeight - chatEl.scrollTop - chatEl.clientHeight;
+  if (!force && distance > 120) return;
+  chatEl.scrollTo({
+    top: chatEl.scrollHeight,
+    behavior: smooth ? "smooth" : "auto",
+  });
+}
+
+function bindChatScrollBehavior() {
+  chatEl.addEventListener(
+    "scroll",
+    () => {
+      const distance = chatEl.scrollHeight - chatEl.scrollTop - chatEl.clientHeight;
+      stickToBottom = distance < 96;
+    },
+    { passive: true }
+  );
 }
 
 function keepComposerVisible() {
@@ -275,7 +312,7 @@ function switchSession(sessionId) {
   renderHistoryList();
   renderConversation(session.messages);
   clearError();
-  if (window.innerWidth < 768) setSidebarCollapsed(true);
+  if (window.innerWidth < 1024) setSidebarCollapsed(true);
 }
 
 function startNewSession() {
@@ -371,10 +408,6 @@ function ensureThread() {
     chatEl.appendChild(chatThread);
   }
   return chatThread;
-}
-
-function scrollToBottom() {
-  chatEl.scrollTop = chatEl.scrollHeight;
 }
 
 function setEmptyState(visible) {
@@ -473,7 +506,7 @@ function setTypingLabel(label) {
 function showTyping(label) {
   hideTyping();
   ensureThread().appendChild(createTypingRow(label));
-  scrollToBottom();
+  scrollToBottom({ force: true, smooth: true });
 }
 
 function hideTyping() {
@@ -495,7 +528,7 @@ function renderConversation(messages) {
         : createAssistantMessageEl(message.content, message.meta, index)
     );
   });
-  scrollToBottom();
+  scrollToBottom({ force: true, smooth: true });
 }
 
 // ---------------------------------------------------------------------------
@@ -587,11 +620,11 @@ async function sendMessage(rawMessage) {
   followupList.classList.add("hidden");
   followupList.innerHTML = "";
 
-  if (window.innerWidth < 768) {
+  if (isOverlaySidebar()) {
     setSidebarCollapsed(true);
-    sidebarOverlay.classList.add("hidden");
   }
 
+  stickToBottom = true;
   isGenerating = true;
   sendBtn.classList.add("hidden");
   stopBtn.classList.remove("hidden");
@@ -666,7 +699,7 @@ async function sendMessage(rawMessage) {
       body.className = "msg-assistant";
       streamingEl.appendChild(body);
       ensureThread().appendChild(streamingEl);
-      scrollToBottom();
+      scrollToBottom({ force: true, smooth: true });
       return streamingEl;
     };
 
@@ -784,7 +817,7 @@ function appendRenderedMessage(message, index) {
   setEmptyState(false);
   const thread = ensureThread();
   thread.appendChild(createAssistantMessageEl(message.content, message.meta, index));
-  scrollToBottom();
+  scrollToBottom({ force: true, smooth: true });
 }
 
 stopBtn.addEventListener("click", () => {
@@ -820,7 +853,7 @@ topNewChatBtn.addEventListener("click", startNewSession);
 // ---------------------------------------------------------------------------
 sidebarToggle.addEventListener("click", (event) => {
   event.stopPropagation();
-  if (window.innerWidth < 768) setSidebarCollapsed(false);
+  if (isOverlaySidebar()) setSidebarCollapsed(false);
   else setSidebarCollapsed(!isSidebarCollapsed());
 });
 sidebarClose.addEventListener("click", (event) => {
@@ -829,7 +862,20 @@ sidebarClose.addEventListener("click", (event) => {
 });
 sidebarOverlay.addEventListener("click", () => setSidebarCollapsed(true));
 window.addEventListener("resize", () => {
-  if (window.innerWidth >= 768) sidebarOverlay.classList.add("hidden");
+  if (!isOverlaySidebar()) {
+    sidebarOverlay.classList.remove("is-visible");
+    sidebarOverlay.setAttribute("aria-hidden", "true");
+    updateBodyScrollLock();
+    return;
+  }
+  if (isSidebarCollapsed()) {
+    sidebarOverlay.classList.remove("is-visible");
+    sidebarOverlay.setAttribute("aria-hidden", "true");
+  } else {
+    sidebarOverlay.classList.add("is-visible");
+    sidebarOverlay.setAttribute("aria-hidden", "false");
+  }
+  updateBodyScrollLock();
 });
 
 // ---------------------------------------------------------------------------
@@ -870,11 +916,15 @@ function openSettings() {
   settingWebSearch.checked = settings.webSearchEnabled;
   settingMemoryEnabled.checked = settings.memoryEnabled;
   renderMemoryList();
-  settingsOverlay.classList.remove("hidden");
+  settingsOverlay.classList.add("is-open");
+  settingsOverlay.setAttribute("aria-hidden", "false");
+  updateBodyScrollLock();
 }
 
 function closeSettings() {
-  settingsOverlay.classList.add("hidden");
+  settingsOverlay.classList.remove("is-open");
+  settingsOverlay.setAttribute("aria-hidden", "true");
+  updateBodyScrollLock();
 }
 
 settingsOpenBtn.addEventListener("click", openSettings);
@@ -908,14 +958,18 @@ memoryDeleteAllBtn.addEventListener("click", () => {
 // Ctrl+K search
 // ---------------------------------------------------------------------------
 function openSearch() {
-  searchOverlay.classList.remove("hidden");
+  searchOverlay.classList.add("is-open");
+  searchOverlay.setAttribute("aria-hidden", "false");
   searchInput.value = "";
   searchResults.innerHTML = "";
+  updateBodyScrollLock();
   searchInput.focus();
 }
 
 function closeSearch() {
-  searchOverlay.classList.add("hidden");
+  searchOverlay.classList.remove("is-open");
+  searchOverlay.setAttribute("aria-hidden", "true");
+  updateBodyScrollLock();
 }
 
 searchOpenBtn.addEventListener("click", openSearch);
@@ -929,8 +983,9 @@ document.addEventListener("keydown", (event) => {
     event.preventDefault();
     openSearch();
   } else if (event.key === "Escape") {
-    if (!searchOverlay.classList.contains("hidden")) closeSearch();
-    if (!settingsOverlay.classList.contains("hidden")) closeSettings();
+    if (searchOverlay.classList.contains("is-open")) closeSearch();
+    else if (settingsOverlay.classList.contains("is-open")) closeSettings();
+    else if (isOverlaySidebar() && !isSidebarCollapsed()) setSidebarCollapsed(true);
   }
 });
 
@@ -981,6 +1036,7 @@ async function checkHealth() {
 // Init
 // ---------------------------------------------------------------------------
 modeSelect.value = activeSession?.mode || settings.defaultMode;
+bindChatScrollBehavior();
 initSidebar();
 updatePrivacyBadge();
 updateNewSessionControls();

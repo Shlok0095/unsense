@@ -3,15 +3,49 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --sidebar-width: clamp(16rem, 22vw, 20rem);
+    --content-max: min(56rem, 100%);
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: 150ms var(--ease-soft);
+    --transition-panel: 280ms var(--ease-out);
+  }
+
   html {
-    /* Slightly below 100% so more UI fits on screen (zoomed-out feel). */
-    font-size: 88%;
+    /* Fluid base size: readable on phones, slightly denser on large screens. */
+    font-size: clamp(14px, 0.84rem + 0.25vw, 16px);
+    scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 
   body {
     @apply overflow-hidden bg-void text-slate-200 antialiased;
     min-height: 100vh;
     min-height: 100dvh;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body.scroll-locked {
+    overflow: hidden;
+    touch-action: none;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-neon/50 ring-offset-2 ring-offset-void;
   }
 
   ::-webkit-scrollbar {
@@ -61,8 +95,8 @@
     @apply relative grid overflow-hidden;
     height: 100vh;
     height: 100dvh;
-    grid-template-columns: 20rem minmax(0, 1fr);
-    transition: grid-template-columns 0.3s ease-in-out;
+    grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+    transition: grid-template-columns var(--transition-panel);
   }
 
   .app-root.sidebar-collapsed {
@@ -71,16 +105,93 @@
 
   .sidebar {
     @apply z-30 flex h-full w-full min-w-0 flex-col overflow-hidden border-r border-neon/20 bg-panel/95 shadow-panel backdrop-blur-md;
+    transition: transform var(--transition-panel), opacity var(--transition-fast), visibility var(--transition-fast);
   }
 
-  @media (max-width: 767px) {
+  @media (max-width: 639px) {
     .app-root,
     .app-root.sidebar-collapsed {
       grid-template-columns: minmax(0, 1fr);
     }
 
     .sidebar {
-      @apply fixed inset-y-0 left-0 z-40 w-[min(20rem,85vw)] shadow-2xl transition-transform duration-300 ease-in-out;
+      @apply fixed inset-y-0 left-0 z-40 w-[min(18.5rem,88vw)] shadow-2xl;
+      transform: translateX(-100%);
+      padding-top: env(safe-area-inset-top, 0px);
+      will-change: transform;
+    }
+
+    .app-root:not(.sidebar-collapsed) .sidebar {
+      transform: translateX(0);
+    }
+
+    .app-root.sidebar-collapsed .sidebar {
+      transform: translateX(-100%);
+    }
+
+    .topbar {
+      @apply px-3 py-2.5;
+      padding-top: max(0.625rem, env(safe-area-inset-top, 0px));
+    }
+
+    .chat-main {
+      @apply px-3 py-3;
+      scroll-padding-bottom: 1rem;
+    }
+
+    .composer {
+      @apply px-3 py-2.5;
+      padding-bottom: max(0.625rem, env(safe-area-inset-bottom, 0px));
+    }
+
+    .empty-state h2 {
+      @apply text-xl;
+    }
+
+    .empty-state .text-6xl {
+      @apply text-4xl;
+    }
+
+    .msg-user {
+      @apply max-w-[92%] px-4 py-3 text-[0.9375rem] leading-7;
+    }
+
+    .msg-assistant {
+      @apply text-[0.9375rem] leading-7;
+    }
+
+    .icon-btn {
+      @apply h-10 w-10 min-h-[44px] min-w-[44px];
+    }
+
+    .btn-send,
+    .btn-stop {
+      @apply min-h-[44px] px-5 py-2.5;
+    }
+
+    .history-item {
+      @apply min-h-[44px] py-2.5;
+    }
+
+    .history-delete {
+      @apply h-10 w-10 min-h-[44px] min-w-[44px];
+    }
+
+    .followup-chip,
+    .source-link,
+    .project-chip {
+      @apply min-h-[36px];
+    }
+  }
+
+  @media (min-width: 640px) and (max-width: 1023px) {
+    .app-root,
+    .app-root.sidebar-collapsed {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .sidebar {
+      @apply fixed inset-y-0 left-0 z-40 w-[min(18rem,42vw)] shadow-2xl;
       transform: translateX(-100%);
       padding-top: env(safe-area-inset-top, 0px);
     }
@@ -93,47 +204,16 @@
       transform: translateX(-100%);
     }
 
-    .topbar {
-      @apply px-3 py-3;
-      padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
-    }
-
     .chat-main {
-      @apply px-3 py-4;
+      @apply px-6 py-6;
     }
 
     .composer {
-      @apply px-3 py-3;
-      padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
-    }
-
-    .composer-box {
-      @apply gap-2 p-2 pl-3;
-    }
-
-    .btn-send,
-    .btn-stop {
-      @apply px-4 py-3;
-    }
-
-    .mode-select {
-      @apply max-w-[4.5rem] px-1.5 text-[11px];
-    }
-
-    .privacy-badge {
-      @apply px-2 py-0.5 text-[10px];
-    }
-
-    .empty-state h2 {
-      @apply text-2xl;
-    }
-
-    .empty-state .text-6xl {
-      @apply text-5xl;
+      @apply px-6 py-4;
     }
   }
 
-  @media (min-width: 768px) {
+  @media (min-width: 1024px) {
     .sidebar {
       visibility: visible;
       pointer-events: auto;
@@ -170,7 +250,7 @@
   }
 
   .history-row {
-    @apply flex min-w-0 items-center gap-1 rounded-lg border border-transparent transition hover:border-neon/15;
+    @apply flex min-w-0 items-center gap-1 rounded-lg border border-transparent transition-[background-color,border-color,color] duration-150 hover:border-neon/15;
   }
 
   .history-row.active {
@@ -199,14 +279,20 @@
 
   .sidebar-overlay {
     @apply fixed inset-0 z-20 bg-black/70 backdrop-blur-sm;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity var(--transition-fast), visibility var(--transition-fast);
   }
 
-  .sidebar-overlay.hidden {
-    display: none;
+  .sidebar-overlay.is-visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
   }
 
   .topbar {
-    @apply flex shrink-0 items-center justify-between border-b border-neon/15 bg-panel/90 px-5 py-4 backdrop-blur-md;
+    @apply sticky top-0 z-30 flex shrink-0 items-center justify-between border-b border-neon/15 bg-panel/90 px-5 py-4 backdrop-blur-md;
   }
 
   .chat-shell {
@@ -224,7 +310,24 @@
   }
 
   .chat-thread {
-    @apply mx-auto flex max-w-4xl flex-col gap-7;
+    @apply mx-auto flex w-full max-w-4xl flex-col gap-6;
+    max-width: var(--content-max);
+  }
+
+  .msg-user-wrap,
+  .msg-assistant-wrap {
+    animation: msg-in 0.35s var(--ease-out) both;
+  }
+
+  @keyframes msg-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .msg-user-wrap {
@@ -310,7 +413,7 @@
   }
 
   .composer {
-    @apply shrink-0 border-t border-neon/15 bg-panel/90 px-5 py-5 backdrop-blur-md md:px-10;
+    @apply sticky bottom-0 z-20 shrink-0 border-t border-neon/15 bg-panel/95 px-5 py-5 backdrop-blur-md md:px-10;
     padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 0px));
   }
 
@@ -331,17 +434,53 @@
   }
 
   .composer-box {
-    @apply mx-auto flex max-w-4xl items-end gap-3 rounded-xl border border-neon/30 bg-void/80 p-3 pl-5 shadow-neon focus-within:border-neon/60;
+    @apply mx-auto flex w-full max-w-4xl flex-col gap-2 rounded-xl border border-neon/30 bg-void/80 p-3 shadow-neon transition-[border-color,box-shadow] duration-200 focus-within:border-neon/60 focus-within:shadow-[0_0_24px_rgba(0,255,156,0.12)];
+    max-width: var(--content-max);
+  }
+
+  .composer-row {
+    @apply flex min-w-0 items-end gap-2;
+  }
+
+  .composer-row-main {
+    @apply w-full;
+  }
+
+  .composer-row-actions {
+    @apply w-full items-center justify-between;
+  }
+
+  .composer-action-btns {
+    @apply flex shrink-0 items-center gap-2;
+  }
+
+  @media (min-width: 640px) {
+    .composer-box {
+      @apply flex-row items-end gap-3 p-3 pl-4;
+    }
+
+    .composer-row-main {
+      @apply min-w-0 flex-1;
+    }
+
+    .composer-row-actions {
+      @apply w-auto shrink-0 flex-col items-stretch gap-2 sm:flex-row sm:items-center;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .composer-row-actions {
+      @apply flex-row items-center gap-2;
+    }
   }
 
   .composer-input {
-    @apply max-h-56 min-h-[52px] flex-1 resize-none bg-transparent py-3 text-slate-100 outline-none placeholder:text-slate-600;
-    /* iOS auto-zooms inputs below 16px — keep at least 16px even with 88% root font-size. */
+    @apply max-h-56 min-h-[44px] w-full min-w-0 flex-1 resize-none bg-transparent py-2.5 text-slate-100 outline-none placeholder:text-slate-600;
     font-size: max(16px, 1rem);
   }
 
   .btn-send {
-    @apply rounded-lg bg-neon px-6 py-3 text-sm font-bold text-void transition hover:bg-neonDim disabled:cursor-not-allowed disabled:opacity-40;
+    @apply rounded-lg bg-neon px-5 py-2.5 text-sm font-bold text-void transition-[background-color,transform,opacity] duration-150 hover:bg-neonDim active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40;
   }
 
   .btn-ghost {
@@ -349,7 +488,7 @@
   }
 
   .icon-btn {
-    @apply flex h-11 w-11 items-center justify-center rounded-lg border border-neon/25 bg-void/60 text-neon transition hover:border-neon hover:bg-neon/10;
+    @apply flex h-10 w-10 min-h-[40px] min-w-[40px] items-center justify-center rounded-lg border border-neon/25 bg-void/60 text-neon transition-[background-color,border-color,transform] duration-150 hover:border-neon hover:bg-neon/10 active:scale-[0.97];
   }
 
   .select-dark {
@@ -411,7 +550,7 @@
   /* ---------- Composer extras: mode select, stop button ---------- */
 
   .mode-select {
-    @apply shrink-0 rounded-lg border border-edge bg-void/70 px-2 py-2 text-xs text-slate-300 outline-none focus:border-neon/50;
+    @apply min-h-[40px] shrink-0 rounded-lg border border-edge bg-void/70 px-2.5 py-2 text-xs text-slate-300 outline-none transition-colors duration-150 focus:border-neon/50;
   }
 
   .btn-stop {
@@ -427,7 +566,7 @@
   }
 
   .followup-chip {
-    @apply rounded-full border border-cyan/25 bg-cyan/5 px-3 py-1.5 text-sm text-cyan transition hover:border-cyan/50 hover:bg-cyan/10;
+    @apply min-h-[36px] rounded-full border border-cyan/25 bg-cyan/5 px-3 py-1.5 text-sm text-cyan transition-[background-color,border-color,transform] duration-150 hover:border-cyan/50 hover:bg-cyan/10 active:scale-[0.98];
   }
 
   /* ---------- Message actions ---------- */
@@ -471,15 +610,27 @@
 
   .modal-overlay {
     @apply fixed inset-0 z-50 flex items-start justify-center bg-black/70 backdrop-blur-sm;
-    padding: 8vh 1rem 2rem;
+    padding: max(4vh, env(safe-area-inset-top, 0px)) 1rem 2rem;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.22s var(--ease-soft), visibility 0.22s var(--ease-soft);
   }
 
-  .modal-overlay.hidden {
-    display: none;
+  .modal-overlay.is-open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
   }
 
   .modal-panel {
-    @apply flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-neon/25 bg-panel shadow-panel;
+    @apply flex max-h-[min(80vh,720px)] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-neon/25 bg-panel shadow-panel;
+    transform: translateY(10px) scale(0.98);
+    transition: transform 0.28s var(--ease-out);
+  }
+
+  .modal-overlay.is-open .modal-panel {
+    transform: translateY(0) scale(1);
   }
 
   .modal-header {
@@ -574,13 +725,26 @@
     @apply border-neon/15 bg-void/40 text-slate-400;
   }
 
-  @media (max-width: 767px) {
+  @media (max-width: 639px) {
     .modal-overlay {
-      padding: 4vh 0.75rem;
+      @apply items-end px-0 pb-0;
+      padding-top: max(2vh, env(safe-area-inset-top, 0px));
     }
 
     .modal-panel {
-      max-height: 90vh;
+      @apply max-h-[92dvh] rounded-b-none rounded-t-2xl;
+    }
+
+    .search-panel {
+      @apply max-h-[85dvh];
+    }
+
+    .settings-row {
+      @apply flex-col items-stretch gap-2;
+    }
+
+    .settings-row select {
+      @apply max-w-none w-full;
     }
   }
 }
