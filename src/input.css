@@ -13,33 +13,42 @@
     --transition-fast: 150ms var(--ease-soft);
     --transition-panel: 280ms var(--ease-out);
 
-    /* ChatGPT-style neutral dark canvas */
-    --bg-base: #0d0d0d;
-    --bg-sidebar: #171717;
-    --bg-elevated: #2f2f2f;
-    --bg-input: #2f2f2f;
-    --bg-void: #0d0d0d;
-    --bg-deep: #0d0d0d;
-    --bg-panel: #262626;
-    --bg-surface: #171717;
+    /* Brand palette — #D83560 → #A7B4D3 */
+    --color-pink: #d83560;
+    --color-blue: #a7b4d3;
+    --gradient-brand: linear-gradient(180deg, #d83560 0%, #a7b4d3 100%);
+    --gradient-brand-diag: linear-gradient(135deg, #d83560 0%, #a7b4d3 100%);
 
-    /* Accent — minimal, restrained */
-    --accent-ice: #b4b4b4;
-    --accent-frost: #ececec;
-    --accent-muted: #737373;
-    --accent-glow: rgba(255, 255, 255, 0.06);
-    --accent-ring: rgba(255, 255, 255, 0.12);
+    /* Dark canvas with subtle brand undertone */
+    --bg-base: #0a0a0f;
+    --bg-sidebar: #101018;
+    --bg-elevated: #18181f;
+    --bg-input: #1c1c26;
+    --bg-void: #0a0a0f;
+    --bg-deep: #0a0a0f;
+    --bg-panel: #18181f;
+    --bg-surface: #101018;
+
+    /* Accents mapped to brand */
+    --accent-primary: #d83560;
+    --accent-secondary: #a7b4d3;
+    --accent-ice: #a7b4d3;
+    --accent-frost: #d83560;
+    --accent-muted: #7a6888;
+    --accent-glow: rgba(216, 53, 96, 0.14);
+    --accent-glow-blue: rgba(167, 180, 211, 0.12);
+    --accent-ring: rgba(216, 53, 96, 0.35);
 
     /* Text */
-    --text-primary: #ececec;
-    --text-secondary: #a3a3a3;
-    --text-muted: #737373;
-    --text-dim: #525252;
+    --text-primary: #ececf0;
+    --text-secondary: #a7b4d3;
+    --text-muted: #6e6e82;
+    --text-dim: #4a4a58;
 
     /* Borders */
-    --border-subtle: rgba(255, 255, 255, 0.08);
-    --border-default: rgba(255, 255, 255, 0.12);
-    --border-focus: rgba(255, 255, 255, 0.18);
+    --border-subtle: rgba(167, 180, 211, 0.10);
+    --border-default: rgba(167, 180, 211, 0.16);
+    --border-focus: rgba(216, 53, 96, 0.45);
 
     /* Semantic */
     --danger: #f87171;
@@ -122,7 +131,10 @@
 
   .app-canvas {
     @apply pointer-events-none fixed inset-0 -z-10;
-    background: var(--bg-base);
+    background-color: var(--bg-base);
+    background-image:
+      radial-gradient(ellipse 70% 45% at 15% -5%, rgba(216, 53, 96, 0.10), transparent 55%),
+      radial-gradient(ellipse 55% 40% at 85% 105%, rgba(167, 180, 211, 0.08), transparent 55%);
   }
 
   /* ---------- App shell ---------- */
@@ -141,7 +153,8 @@
 
   .brand-mark {
     @apply h-2 w-2 shrink-0 rounded-full;
-    background: var(--text-secondary);
+    background: var(--gradient-brand-diag);
+    box-shadow: 0 0 8px rgba(216, 53, 96, 0.35);
   }
 
   /* ---------- Sidebar ---------- */
@@ -314,8 +327,12 @@
 
   .sidebar-new-chat:hover {
     color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.05);
-    border-color: var(--border-default);
+    background: var(--accent-glow);
+    border-color: rgba(216, 53, 96, 0.35);
+  }
+
+  .sidebar-new-chat:hover svg {
+    color: var(--accent-primary);
   }
 
   .sidebar-new-chat svg {
@@ -350,8 +367,8 @@
   }
 
   .history-row.active {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: transparent;
+    background: var(--accent-glow);
+    border-color: rgba(216, 53, 96, 0.20);
   }
 
   .history-item {
@@ -472,7 +489,10 @@
     font-size: clamp(1.75rem, 4vw, 2.25rem);
     font-weight: 400;
     line-height: 1.2;
-    color: var(--text-primary);
+    background: var(--gradient-brand-diag);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 
   .empty-state-sub {
@@ -701,13 +721,15 @@
   }
 
   .btn-send-circle {
-    @apply flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-full transition-[background-color,transform,opacity] duration-150 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40;
-    color: var(--bg-base);
-    background: var(--text-primary);
+    @apply flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-full transition-[opacity,transform] duration-150 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40;
+    color: #ffffff;
+    background: var(--gradient-brand-diag);
+    box-shadow: 0 2px 12px rgba(216, 53, 96, 0.30);
   }
 
   .btn-send-circle:hover:not(:disabled) {
-    background: #ffffff;
+    opacity: 0.92;
+    box-shadow: 0 2px 16px rgba(216, 53, 96, 0.45);
   }
 
   .btn-stop-circle {
@@ -744,8 +766,8 @@
   }
 
   .icon-btn:hover {
-    color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.06);
+    color: var(--accent-secondary);
+    background: var(--accent-glow-blue);
   }
 
   .select-dark {
@@ -778,7 +800,7 @@
 
   .typing-dot {
     @apply h-2 w-2 rounded-full;
-    background: var(--accent-muted);
+    background: var(--accent-primary);
   }
 
   /* ---------- Sidebar extras ---------- */
@@ -834,8 +856,9 @@
 
   .privacy-badge {
     @apply rounded-full px-2.5 py-0.5 text-xs;
-    color: var(--text-secondary);
-    background: rgba(255, 255, 255, 0.06);
+    color: var(--accent-secondary);
+    background: var(--accent-glow-blue);
+    border: 1px solid rgba(167, 180, 211, 0.20);
   }
 
   /* ---------- Think toggle ---------- */
@@ -853,9 +876,9 @@
   }
 
   .think-toggle[aria-pressed="true"] {
-    color: var(--text-primary);
+    color: var(--accent-primary);
     background: var(--accent-glow);
-    border-color: var(--border-default);
+    border-color: rgba(216, 53, 96, 0.40);
     box-shadow: none;
   }
 
