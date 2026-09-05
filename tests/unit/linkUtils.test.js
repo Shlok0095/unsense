@@ -5,6 +5,7 @@ import {
   linkifySourceListLines,
   prepareMarkdownSources,
   shortLinkLabel,
+  stripInventedCitationLines,
   stripTrailingSourcesSection,
 } from "../../public/linkUtils.js";
 
@@ -50,9 +51,39 @@ test("stripTrailingSourcesSection removes model-generated bibliographies", () =>
   assert.equal(stripTrailingSourcesSection(md), "Answer text.");
 });
 
+test("stripTrailingSourcesSection removes plain Sources header without markdown hash", () => {
+  const md =
+    'Answer text.\n\nSources\n\n[1] "Android Tutorial" by Thewhitehats.com\n[2] "Androguard" by Medium.com';
+  assert.equal(stripTrailingSourcesSection(md), "Answer text.");
+});
+
+test("stripTrailingSourcesSection removes Cited sources block", () => {
+  const md = "Answer.\n\nCited sources:\n[1] fake";
+  assert.equal(stripTrailingSourcesSection(md), "Answer.");
+});
+
+test("stripInventedCitationLines removes fake bibliography without Sources header", () => {
+  const md =
+    'Conclusion text.\n\n[1] "Android Hacking Tutorial" by HackersBlog.com\n[2] "Rooting" by XDA-Developers.com';
+  assert.equal(stripInventedCitationLines(md), "Conclusion text.");
+});
+
+test("prepareMarkdownSources removes android fake sources block from user example", () => {
+  const md = `Answer body here.
+
+Sources
+
+[1] "Android App Reverse Engineering Tutorial" by Thewhitehats.com
+
+[2] "Reverse Engineering Android Apps with Androguard" by Medium.com`;
+  assert.equal(prepareMarkdownSources(md, []), "Answer body here.");
+});
+
 test("prepareMarkdownSources strips fake sources when none are verified", () => {
   const md = "Answer.\n\n## Sources\n[1] \"Fake\" by [Author]";
   assert.equal(prepareMarkdownSources(md, []), "Answer.");
+  const plain = 'Answer.\n\nSources\n\n[1] "Fake" by example.com';
+  assert.equal(prepareMarkdownSources(plain, []), "Answer.");
 });
 
 test("prepareMarkdownSources strips fake sources section when verified exist", () => {

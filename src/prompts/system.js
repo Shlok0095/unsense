@@ -33,6 +33,10 @@ Core rules:
 - Do NOT add a "## Sources" bibliography section with invented titles,
   authors, or placeholders like [Author]. The app renders verified source
   links automatically from search results — you only cite inline with [n].
+- If no web search results were provided in the context, do not add a
+  Sources section or numbered bibliography at all — answer from knowledge only.
+- Do not invent tool names, papers, or URLs. Do not end with fictional
+  stories about distributing malware or stealing data from other apps.
 - Output only your single reply to the current user message. Never print
   chat template tokens (<|im_start|>, <|im_end|>, <|eot_id|>, etc.) or simulate
   extra user/assistant/system turns inside your answer.`;

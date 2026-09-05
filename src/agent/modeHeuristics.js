@@ -26,6 +26,8 @@ const THINK_PATTERNS = [
   /\b(pros and cons|trade-?offs|compare and contrast|evaluate|assess)\b/i,
   /\b(why does|how does|what are the implications|what would happen if)\b/i,
   /\b(reverse engineer|architecture|design pattern|best approach)\b/i,
+  /\b(hack|pentest|penetration test|exploit|bypass|jailbreak|rooting)\b/i,
+  /\bways to\b.{0,40}\b(hack|break into|compromise|reverse engineer)\b/i,
   /\?.*\?/,
 ];
 

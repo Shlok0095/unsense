@@ -37,7 +37,28 @@ function isBrokenHref(href) {
 
 export function stripTrailingSourcesSection(markdown) {
   if (!markdown) return markdown;
-  return markdown.replace(/\n#{1,3}\s*Sources(?:\s*&\s*Further\s*Reading)?\b[\s\S]*$/i, "").trimEnd();
+  // Handles ## Sources, plain "Sources", and "Cited sources:" bibliographies.
+  return markdown
+    .replace(
+      /\n(?:#{1,3}\s*)?(?:Sources(?:\s*&\s*Further\s*Reading)?|Cited sources:?)\s*\n[\s\S]*$/i,
+      ""
+    )
+    .trimEnd();
+}
+
+/** Remove model-invented [n] "Title" by site.com rows when there are no verified sources. */
+export function stripInventedCitationLines(markdown) {
+  if (!markdown) return markdown;
+  let text = markdown;
+  // Trailing run of bibliography-style lines (with or without a Sources header).
+  text = text.replace(
+    /\n(?:#{1,3}\s*)?Sources\s*\n+(?:\s*\[\d+\][^\n]*\n*)+$/i,
+    ""
+  );
+  text = text.replace(/\n(?:\s*\[\d+\]\s*["“][^"”\n]+["”]\s*by\s+\S[^\n]*)+$/gi, "");
+  text = text.replace(/\n(?:\s*\[\d+\]\s*[^\n]*\s*by\s+\S[^\n]*)+$/gi, "");
+  text = text.replace(/\nSources\s*$/i, "");
+  return text.trimEnd();
 }
 
 /** Turn bibliography lines like `[1] "Title" by [Author]` into markdown links. */
@@ -68,14 +89,14 @@ export function linkifySourceListLines(markdown, sources = []) {
 export function prepareMarkdownSources(markdown, sources = []) {
   let text = markdown || "";
   const verified = sources.filter((s) => s?.url);
-  const hasSourcesSection = /\n#{1,3}\s*Sources\b/i.test(text);
+  const hasSourcesSection = /\n(?:#{1,3}\s*)?(?:Sources\b|Cited sources:?)/i.test(text);
 
   if (verified.length) {
     if (hasSourcesSection) text = stripTrailingSourcesSection(text);
     text = linkifySourceListLines(text, verified);
-  } else if (hasSourcesSection) {
-    // Model invented a bibliography with no verified URLs — drop it.
-    text = stripTrailingSourcesSection(text);
+  } else {
+    if (hasSourcesSection) text = stripTrailingSourcesSection(text);
+    text = stripInventedCitationLines(text);
   }
 
   return text;

@@ -12,10 +12,12 @@ import { validateMode } from "../security/validation.js";
 const CLASSIFY_PROMPT = `Classify the user's question into exactly one response mode.
 Reply with exactly one word: THINK, RESEARCH, ANALYZE, or CODE.
 
-THINK — complex reasoning, multi-step explanations, tradeoffs, how/why questions.
+THINK — complex reasoning, multi-step explanations, tradeoffs, how/why questions,
+security/reverse-engineering methodology, and offensive-security concepts.
 RESEARCH — current events, live data, recent news, prices, scores, up-to-date facts.
 ANALYZE — document/file analysis, summarizing uploaded content, comparing reports.
-CODE — programming, debugging, implementation, algorithms, technical architecture.
+CODE — writing or debugging program code, algorithms, APIs, implementations.
+NOT CODE — general "how to hack", malware, or security theory without a coding task.
 
 Do NOT reply FAST — the user explicitly enabled deep Think mode.`;
 

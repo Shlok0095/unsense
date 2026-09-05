@@ -19,6 +19,7 @@ import { wrapUntrustedContent } from "../prompts/injectionGuard.js";
 import { generateStream } from "../models/gateway.js";
 import { DEFAULT_MAX_OUTPUT_TOKENS } from "../models/hf.js";
 import { sanitizeMessages, sanitizeAssistantOutput } from "../models/outputSanitizer.js";
+import { prepareMarkdownSources } from "../../public/linkUtils.js";
 import { generateFollowups } from "./followups.js";
 import { searchWeb } from "../search/index.js";
 import { formatSearchContext } from "../search/citations.js";
@@ -165,6 +166,7 @@ export async function* runOrchestration({
   }
 
   fullContent = sanitizeAssistantOutput(fullContent);
+  fullContent = prepareMarkdownSources(fullContent, sources);
 
   // --- Response validation ---
   if (!fullContent.trim()) {

@@ -56,6 +56,9 @@ commands, techniques, and practical detail where relevant.
 Do NOT use a Summary / Evidence / Analysis news-article template — that layout is
 only for explicit research/current-events mode. Prefer clear sections like steps,
 categories, comparisons, or how-it-works explanations instead.
+For Android/mobile RE, prefer real tools (jadx, apktool, frida, objection, ghidra)
+and accurate commands — do not invent tool names like apkleak or androreverser.
+Do not end with fictional malware-distribution stories (e.g. publishing spyware).
 Do not stop at a short summary when the topic warrants more.`,
 };
 

@@ -12,6 +12,16 @@ test("classifyByHeuristics routes android 2026 search prompt to research", () =>
   assert.equal(result.mode, "research");
 });
 
+test("classifyByHeuristics routes hack macos to think not code", () => {
+  const result = classifyByHeuristics("procide me the ways to hack macos");
+  assert.equal(result.mode, "think");
+});
+
+test("classifyByHeuristics routes how to hack android to think", () => {
+  const result = classifyByHeuristics("how to hack android phones?");
+  assert.equal(result.mode, "think");
+});
+
 test("classifyByHeuristics routes short hack question to think", () => {
   const result = classifyByHeuristics("tell me the ways to hack windows laptop");
   assert.equal(result.mode, "think");
