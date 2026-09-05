@@ -13,28 +13,28 @@
     --transition-fast: 150ms var(--ease-soft);
     --transition-panel: 280ms var(--ease-out);
 
-    /* Unified dark canvas */
-    --bg-base: #0d0d0d;
-    --bg-sidebar: #171717;
-    --bg-elevated: #262626;
-    --bg-input: #2f2f2f;
-    --bg-void: #0d0d0d;
-    --bg-deep: #0d0d0d;
-    --bg-panel: #262626;
-    --bg-surface: #171717;
+    /* Unified dark canvas — restrained hacker aesthetic */
+    --bg-base: #0a0c0f;
+    --bg-sidebar: #0f1218;
+    --bg-elevated: #1a1f28;
+    --bg-input: #1e2430;
+    --bg-void: #0a0c0f;
+    --bg-deep: #0a0c0f;
+    --bg-panel: #1a1f28;
+    --bg-surface: #0f1218;
 
-    /* Accent — used sparingly */
-    --accent-ice: #7dd3fc;
-    --accent-frost: #38bdf8;
-    --accent-muted: #5b9fd4;
-    --accent-glow: rgba(125, 211, 252, 0.10);
-    --accent-ring: rgba(125, 211, 252, 0.35);
+    /* Accent — muted steel-cyan, not ChatGPT blue */
+    --accent-ice: #6b9eb8;
+    --accent-frost: #5a8fa8;
+    --accent-muted: #4a6d82;
+    --accent-glow: rgba(107, 158, 184, 0.08);
+    --accent-ring: rgba(107, 158, 184, 0.28);
 
     /* Text */
-    --text-primary: #ececec;
-    --text-secondary: #a3a3a3;
-    --text-muted: #737373;
-    --text-dim: #525252;
+    --text-primary: #d4d8de;
+    --text-secondary: #8b939e;
+    --text-muted: #5c6570;
+    --text-dim: #3d4550;
 
     /* Borders */
     --border-subtle: rgba(255, 255, 255, 0.08);
@@ -108,6 +108,10 @@
   .app-canvas {
     @apply pointer-events-none fixed inset-0 -z-10;
     background: var(--bg-base);
+    background-image:
+      linear-gradient(rgba(107, 158, 184, 0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(107, 158, 184, 0.015) 1px, transparent 1px);
+    background-size: 48px 48px;
   }
 
   /* ---------- App shell ---------- */
@@ -261,7 +265,42 @@
   }
 
   .sidebar-header {
-    @apply flex items-center justify-between gap-2 px-4 py-4;
+    @apply flex items-center justify-between gap-2 px-3 py-3;
+  }
+
+  .sidebar-brand {
+    @apply flex min-w-0 items-center gap-2;
+  }
+
+  .sidebar-brand-text {
+    @apply truncate text-sm font-semibold tracking-tight;
+    color: var(--text-primary);
+  }
+
+  .sidebar-header-actions {
+    @apply flex shrink-0 items-center gap-0.5;
+  }
+
+  .icon-btn-sm {
+    @apply h-8 w-8 min-h-[32px] min-w-[32px];
+  }
+
+  .sidebar-new-chat {
+    @apply mx-3 mb-2 flex w-[calc(100%-1.5rem)] items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-[background-color,color] duration-150;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .sidebar-new-chat:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--border-default);
+  }
+
+  .sidebar-new-chat svg {
+    @apply shrink-0;
+    color: var(--text-muted);
   }
 
   .sidebar-body {
@@ -361,6 +400,38 @@
     background: var(--bg-base);
   }
 
+  .chat-body {
+    @apply flex min-h-0 flex-1 flex-col;
+  }
+
+  .chat-shell:not(.has-messages) .chat-body {
+    @apply justify-center gap-8 px-4 pb-6;
+  }
+
+  .chat-shell:not(.has-messages) .chat-main {
+    @apply flex-none overflow-visible py-0;
+    scroll-padding-bottom: 0;
+  }
+
+  .chat-shell:not(.has-messages) .empty-state {
+    @apply flex-none pb-0;
+  }
+
+  .chat-shell:not(.has-messages) .composer {
+    @apply static shrink-0;
+    background: transparent;
+    padding-top: 0;
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+  }
+
+  .chat-shell.has-messages .chat-body {
+    @apply min-h-0;
+  }
+
+  .chat-shell.has-messages .chat-main {
+    @apply flex-1;
+  }
+
   .chat-main {
     @apply flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-6 lg:px-6;
     -webkit-overflow-scrolling: touch;
@@ -371,7 +442,7 @@
   /* ---------- Empty state ---------- */
 
   .empty-state {
-    @apply mx-auto flex w-full flex-1 flex-col items-center justify-center px-4 pb-8 text-center;
+    @apply mx-auto flex w-full flex-col items-center justify-center px-4 text-center;
     max-width: var(--content-max);
     animation: fadeUp 0.5s var(--ease-out) both;
   }
@@ -563,7 +634,6 @@
 
   .composer-pill:focus-within {
     border-color: var(--border-focus);
-    box-shadow: var(--shadow-float), 0 0 0 1px var(--accent-glow);
   }
 
   .composer-pill-bar {
@@ -739,19 +809,32 @@
     background: rgba(255, 255, 255, 0.06);
   }
 
-  /* ---------- Composer extras ---------- */
+  /* ---------- Think toggle ---------- */
 
-  .mode-select {
-    @apply min-h-[32px] max-w-[7.5rem] shrink-0 truncate rounded-full border px-2.5 py-1 text-xs outline-none transition-colors duration-150;
+  .think-toggle {
+    @apply flex min-h-[32px] shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-[background-color,border-color,color] duration-150;
+    color: var(--text-muted);
+    background: transparent;
+    border-color: transparent;
+  }
+
+  .think-toggle:hover {
     color: var(--text-secondary);
-    background: rgba(255, 255, 255, 0.06);
-    border-color: var(--border-subtle);
+    background: rgba(255, 255, 255, 0.04);
   }
 
-  .mode-select:focus {
+  .think-toggle[aria-pressed="true"] {
+    color: var(--accent-ice);
+    background: var(--accent-glow);
     border-color: var(--border-focus);
-    color: var(--text-primary);
+    box-shadow: inset 0 0 12px rgba(107, 158, 184, 0.06);
   }
+
+  .think-toggle svg {
+    @apply shrink-0;
+  }
+
+  /* ---------- Composer extras (legacy mode-select removed) ---------- */
 
   .btn-stop {
     @apply rounded-lg border px-4 py-2 text-sm font-medium transition;

@@ -11,7 +11,7 @@ const SCHEMA_VERSION = 2;
 function emptySessionFields() {
   return {
     projectId: null,
-    mode: "fast",
+    thinkEnabled: false,
     privacyMode: "normal",
     conversationSummary: null,
     summarizedThroughCount: 0,
@@ -20,12 +20,16 @@ function emptySessionFields() {
 }
 
 function migrateSession(raw) {
+  const thinkEnabled =
+    raw.thinkEnabled === true ||
+    (raw.thinkEnabled === undefined && raw.mode && raw.mode !== "fast");
   return {
     id: raw.id,
     title: raw.title || "new session",
     updatedAt: raw.updatedAt || new Date().toISOString(),
     ...emptySessionFields(),
-    ...raw, // keep any fields already present (post-migration re-runs are safe)
+    ...raw,
+    thinkEnabled,
     messages: (raw.messages || []).map(migrateMessage),
   };
 }
@@ -138,14 +142,14 @@ export function resolveInitialSession() {
   return null;
 }
 
-export function createSession({ mode = "fast", privacyMode = "normal", projectId = null } = {}) {
+export function createSession({ thinkEnabled = false, privacyMode = "normal", projectId = null } = {}) {
   const session = {
     id: `sess_${Date.now()}`,
     title: "new session",
     messages: [],
     updatedAt: new Date().toISOString(),
     ...emptySessionFields(),
-    mode,
+    thinkEnabled,
     privacyMode,
     projectId,
   };

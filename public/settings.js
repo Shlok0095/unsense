@@ -5,7 +5,6 @@
 const STORAGE_KEY = "unsense_settings";
 
 const DEFAULTS = {
-  defaultMode: "fast",
   privacyMode: "normal",
   webSearchEnabled: true,
   memoryEnabled: false,

@@ -27,8 +27,10 @@ import { listProjects, createProject } from "./projects.js";
 // DOM references
 // ---------------------------------------------------------------------------
 const appRoot = document.getElementById("appRoot");
+const chatShell = document.getElementById("chatShell");
 const sidebarToggle = document.getElementById("sidebarToggle");
 const sidebarClose = document.getElementById("sidebarClose");
+const sidebarNewChatBtn = document.getElementById("sidebarNewChatBtn");
 const sidebarOverlay = document.getElementById("sidebarOverlay");
 const historyList = document.getElementById("historyList");
 const projectFilterRow = document.getElementById("projectFilterRow");
@@ -39,7 +41,7 @@ const chatForm = document.getElementById("chatForm");
 const promptEl = document.getElementById("prompt");
 const sendBtn = document.getElementById("sendBtn");
 const stopBtn = document.getElementById("stopBtn");
-const modeSelect = document.getElementById("modeSelect");
+const thinkToggle = document.getElementById("thinkToggle");
 const topNewChatBtn = document.getElementById("topNewChatBtn");
 const attachBtn = document.getElementById("attachBtn");
 const fileInput = document.getElementById("fileInput");
@@ -56,7 +58,6 @@ const searchResults = document.getElementById("searchResults");
 const settingsOpenBtn = document.getElementById("settingsOpenBtn");
 const settingsOverlay = document.getElementById("settingsOverlay");
 const settingsCloseBtn = document.getElementById("settingsCloseBtn");
-const settingDefaultMode = document.getElementById("settingDefaultMode");
 const settingPrivacyMode = document.getElementById("settingPrivacyMode");
 const settingWebSearch = document.getElementById("settingWebSearch");
 const settingMemoryEnabled = document.getElementById("settingMemoryEnabled");
@@ -78,6 +79,18 @@ let settings = loadSettings();
 // A "temporary chat" session lives only in memory for this tab — never
 // written to localStorage, gone on reload. Distinct from a real session.
 let temporarySession = null;
+
+function isThinkEnabled() {
+  return thinkToggle.getAttribute("aria-pressed") === "true";
+}
+
+function setThinkEnabled(enabled) {
+  thinkToggle.setAttribute("aria-pressed", enabled ? "true" : "false");
+}
+
+function setHasMessages(hasMessages) {
+  chatShell.classList.toggle("has-messages", hasMessages);
+}
 
 function isTemporary() {
   return settings.privacyMode === "temporary";
@@ -188,7 +201,7 @@ function ensureSessionForMessage() {
         documents: [],
         conversationSummary: null,
         summarizedThroughCount: 0,
-        mode: modeSelect.value,
+        thinkEnabled: isThinkEnabled(),
         privacyMode: "temporary",
         updatedAt: new Date().toISOString(),
       };
@@ -196,7 +209,7 @@ function ensureSessionForMessage() {
     return temporarySession;
   }
   if (!activeSession) {
-    activeSession = createSession({ mode: modeSelect.value, privacyMode: settings.privacyMode });
+    activeSession = createSession({ thinkEnabled: isThinkEnabled(), privacyMode: settings.privacyMode });
     renderHistoryList();
     updateNewSessionControls();
   }
@@ -309,7 +322,7 @@ function switchSession(sessionId) {
   temporarySession = null;
   activeSession = session;
   setActiveSessionId(sessionId);
-  modeSelect.value = session.mode || "fast";
+  syncThinkFromSession(session);
   renderHistoryList();
   renderConversation(session.messages);
   clearError();
@@ -321,7 +334,7 @@ function startNewSession() {
   activeSession = null;
   clearActiveSession();
   clearPendingFiles();
-  modeSelect.value = settings.defaultMode;
+  setThinkEnabled(false);
   renderConversation([]);
   renderHistoryList();
   clearError();
@@ -422,6 +435,7 @@ function updateEmptyStateGreeting() {
 
 function setEmptyState(visible) {
   emptyState.style.display = visible ? "flex" : "none";
+  setHasMessages(!visible);
   if (visible && chatThread) {
     chatThread.remove();
     chatThread = null;
@@ -619,7 +633,7 @@ async function sendMessage(rawMessage) {
 
   const userMsgIndex = session.messages.length;
   const optimisticMessages = [...session.messages, { role: "user", content: displayMessage }];
-  persistMessages(session, { messages: optimisticMessages, mode: modeSelect.value });
+  persistMessages(session, { messages: optimisticMessages, thinkEnabled: isThinkEnabled() });
   renderConversation(optimisticMessages);
 
   if (rawMessage === undefined) {
@@ -678,7 +692,8 @@ async function sendMessage(rawMessage) {
       signal: abortController.signal,
       body: JSON.stringify({
         message: message || "Analyze the attached files.",
-        mode: modeSelect.value,
+        mode: "fast",
+        think: isThinkEnabled(),
         privacyMode: settings.privacyMode,
         history: historyForRequest,
         conversationSummary: sessionWithDocs.conversationSummary || null,
@@ -857,6 +872,13 @@ function autoResizeTextarea() {
 }
 
 topNewChatBtn.addEventListener("click", startNewSession);
+sidebarNewChatBtn.addEventListener("click", startNewSession);
+
+thinkToggle.addEventListener("click", () => {
+  setThinkEnabled(!isThinkEnabled());
+  const session = currentSession();
+  if (session) persistMessages(session, { thinkEnabled: isThinkEnabled() });
+});
 
 // ---------------------------------------------------------------------------
 // Sidebar toggle
@@ -921,7 +943,6 @@ function renderMemoryList() {
 }
 
 function openSettings() {
-  settingDefaultMode.value = settings.defaultMode;
   settingPrivacyMode.value = settings.privacyMode;
   settingWebSearch.checked = settings.webSearchEnabled;
   settingMemoryEnabled.checked = settings.memoryEnabled;
@@ -943,9 +964,6 @@ settingsOverlay.addEventListener("click", (event) => {
   if (event.target === settingsOverlay) closeSettings();
 });
 
-settingDefaultMode.addEventListener("change", () => {
-  settings = saveSettings({ defaultMode: settingDefaultMode.value });
-});
 settingPrivacyMode.addEventListener("change", () => {
   settings = saveSettings({ privacyMode: settingPrivacyMode.value });
   updatePrivacyBadge();
@@ -1045,7 +1063,7 @@ async function checkHealth() {
 // ---------------------------------------------------------------------------
 // Init
 // ---------------------------------------------------------------------------
-modeSelect.value = activeSession?.mode || settings.defaultMode;
+syncThinkFromSession(activeSession);
 bindChatScrollBehavior();
 initSidebar();
 updatePrivacyBadge();

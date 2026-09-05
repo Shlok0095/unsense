@@ -24,11 +24,13 @@ import { formatSearchContext } from "../search/citations.js";
 import { retrieve } from "../rag/retriever.js";
 import { formatDocumentContext } from "../files/format.js";
 import { formatMemoryContext } from "../memory/format.js";
+import { modeStatusLabel } from "./modeResolver.js";
 
 export async function* runOrchestration({
   token,
   privacyMode = "normal",
   mode = "fast",
+  thinkRequested = false,
   userMessage,
   history = [],
   existingSummary = null,
@@ -38,6 +40,10 @@ export async function* runOrchestration({
   webSearchEnabled = true,
   signal,
 }) {
+  if (thinkRequested) {
+    yield { type: "status", label: modeStatusLabel(mode) };
+  }
+
   const toolPlan = await planDeterministicTools(userMessage);
 
   // --- Web search (freshness) ---

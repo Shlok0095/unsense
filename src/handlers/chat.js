@@ -1,5 +1,6 @@
 import { getToken, hasOllama } from "../config.js";
 import { runOrchestration } from "../agent/orchestrator.js";
+import { resolveResponseMode } from "../agent/modeResolver.js";
 import { toUserFacingApiError } from "../errors.js";
 import { createRequestLogger } from "../observability/logger.js";
 import { checkRateLimit } from "../security/rateLimit.js";
@@ -9,6 +10,7 @@ import {
   validateDocumentChunks,
   validateMemoryItems,
   validateMode,
+  validateThink,
   validatePrivacyMode,
   ValidationError,
 } from "../security/validation.js";
@@ -36,6 +38,7 @@ export async function handleChat(req, res) {
     const privacyMode = validatePrivacyMode(body.privacyMode);
     input = {
       privacyMode,
+      think: validateThink(body.think),
       mode: validateMode(body.mode),
       userText: validateMessage(body.message),
       history: validateHistory(body.history),
@@ -61,7 +64,7 @@ export async function handleChat(req, res) {
   }
   const {
     privacyMode,
-    mode,
+    think,
     userText,
     history,
     documentChunks,
@@ -78,6 +81,14 @@ export async function handleChat(req, res) {
       error: "HF_TOKEN is not configured on the server.",
     });
   }
+
+  const { mode: resolvedMode } = await resolveResponseMode({
+    think,
+    message: userText,
+    documentChunks,
+    token,
+    privacyMode,
+  });
 
   res.writeHead(200, {
     "Content-Type": "text/event-stream; charset=utf-8",
@@ -98,7 +109,8 @@ export async function handleChat(req, res) {
   res.on("close", onClose);
 
   log.info("start", {
-    mode,
+    think,
+    mode: resolvedMode,
     privacyMode,
     historyLength: history.length,
     documentChunkCount: documentChunks.length,
@@ -109,7 +121,8 @@ export async function handleChat(req, res) {
     const stream = runOrchestration({
       token,
       privacyMode,
-      mode,
+      mode: resolvedMode,
+      thinkRequested: think,
       userMessage: userText,
       history,
       existingSummary,

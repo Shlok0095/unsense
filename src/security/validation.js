@@ -99,6 +99,10 @@ export function validateMemoryItems(items) {
     }));
 }
 
+export function validateThink(value) {
+  return Boolean(value);
+}
+
 const VALID_MODES = new Set(["fast", "think", "research", "analyze", "code"]);
 
 export function validateMode(mode) {
