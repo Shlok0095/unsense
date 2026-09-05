@@ -5,7 +5,7 @@
 import { callChatCompletion, streamChatCompletion } from "./openaiCompatClient.js";
 
 const HF_BASE_URL = "https://router.huggingface.co/v1/chat/completions";
-export const DEFAULT_MAX_OUTPUT_TOKENS = 8192;
+export const DEFAULT_MAX_OUTPUT_TOKENS = 4096;
 export const PROVIDER_NAME = "hf";
 
 export { shouldFallback } from "./fallback.js";

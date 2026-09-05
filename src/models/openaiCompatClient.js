@@ -5,15 +5,30 @@
  * a new OpenAI-compatible provider is a ~15-line adapter, not a copy-paste.
  */
 import { recordFailure, recordSuccess } from "./health.js";
+import {
+  CHAT_STOP_SEQUENCES,
+  createStreamSanitizer,
+  sanitizeAssistantOutput,
+} from "./outputSanitizer.js";
 
 function stripTemplateLeakage(text) {
-  if (!text) return "";
-  let cleaned = text;
-  cleaned = cleaned.split(/<\|im_start\|>/)[0];
-  cleaned = cleaned.replace(/<\|im_end\|>/g, "");
-  cleaned = cleaned.replace(/<\|redacted_im_end\|>/g, "");
-  cleaned = cleaned.replace(/<\|eot_id\|>/g, "");
-  return cleaned.trim();
+  return sanitizeAssistantOutput(text);
+}
+
+const DEFAULT_FREQUENCY_PENALTY = 0.35;
+const DEFAULT_PRESENCE_PENALTY = 0.1;
+
+function buildCompletionBody({ model, messages, max_tokens, temperature, stream }) {
+  return {
+    model,
+    messages,
+    max_tokens,
+    temperature,
+    stream,
+    stop: CHAT_STOP_SEQUENCES,
+    frequency_penalty: DEFAULT_FREQUENCY_PENALTY,
+    presence_penalty: DEFAULT_PRESENCE_PENALTY,
+  };
 }
 
 function extractApiError(data, fallback) {
@@ -64,7 +79,7 @@ export async function callChatCompletion({
       method: "POST",
       signal,
       headers: { "Content-Type": "application/json", ...headers },
-      body: JSON.stringify({ model, messages, max_tokens, temperature, stream: false }),
+      body: JSON.stringify(buildCompletionBody({ model, messages, max_tokens, temperature, stream: false })),
     });
   } catch (error) {
     recordFailure(providerName, model, error);
@@ -121,7 +136,7 @@ export async function* streamChatCompletion({
       method: "POST",
       signal,
       headers: { "Content-Type": "application/json", ...headers },
-      body: JSON.stringify({ model, messages, max_tokens, temperature, stream: true }),
+      body: JSON.stringify(buildCompletionBody({ model, messages, max_tokens, temperature, stream: true })),
     });
   } catch (error) {
     recordFailure(providerName, model, error);
@@ -152,6 +167,8 @@ export async function* streamChatCompletion({
   let usage = null;
   let id = null;
   let sawAnyChunk = false;
+  const sanitizer = createStreamSanitizer();
+  let streamStopped = false;
 
   try {
     for await (const rawChunk of upstream.body) {
@@ -181,10 +198,14 @@ export async function* streamChatCompletion({
           if (choice.finish_reason) finishReason = choice.finish_reason;
 
           const delta = choice.delta?.content;
-          if (typeof delta === "string" && delta) {
-            sawAnyChunk = true;
-            fullContent += delta;
-            yield { type: "delta", text: delta };
+          if (typeof delta === "string" && delta && !streamStopped) {
+            const { text, stopped } = sanitizer.push(delta);
+            if (text) {
+              sawAnyChunk = true;
+              fullContent += text;
+              yield { type: "delta", text };
+            }
+            if (stopped) streamStopped = true;
           }
         }
       }
@@ -198,6 +219,17 @@ export async function* streamChatCompletion({
     yield { type: "error", error };
     return;
   }
+
+  if (!streamStopped) {
+    const { text } = sanitizer.finish();
+    if (text) {
+      sawAnyChunk = true;
+      fullContent += text;
+      yield { type: "delta", text };
+    }
+  }
+
+  fullContent = sanitizeAssistantOutput(fullContent);
 
   if (!sawAnyChunk && !fullContent) {
     const error = new Error(`${providerName} returned an empty stream.`);

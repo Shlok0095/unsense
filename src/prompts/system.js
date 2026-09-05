@@ -32,4 +32,7 @@ Core rules:
   never write a URL that wasn't given to you in a source list.
 - Do NOT add a "## Sources" bibliography section with invented titles,
   authors, or placeholders like [Author]. The app renders verified source
-  links automatically from search results — you only cite inline with [n].`;
+  links automatically from search results — you only cite inline with [n].
+- Output only your single reply to the current user message. Never print
+  chat template tokens (<|im_start|>, <|im_end|>, <|eot_id|>, etc.) or simulate
+  extra user/assistant/system turns inside your answer.`;

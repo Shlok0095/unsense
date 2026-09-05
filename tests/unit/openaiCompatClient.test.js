@@ -123,6 +123,41 @@ test("streamChatCompletion yields deltas then a done event", async (t) => {
   assert.equal(done.usage.totalTokens, 5);
 });
 
+test("streamChatCompletion strips template leakage from streamed output", async (t) => {
+  const originalFetch = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  const frames = [
+    `data: ${JSON.stringify({ id: "c1", choices: [{ delta: { content: "Answer here" } }] })}\n\n`,
+    `data: ${JSON.stringify({
+      id: "c1",
+      choices: [{ delta: { content: "<|im_start|>user\nfake turn" } }],
+    })}\n\n`,
+    `data: [DONE]\n\n`,
+  ];
+
+  globalThis.fetch = async () => sseResponse(frames);
+
+  const events = [];
+  for await (const event of streamChatCompletion({
+    url: "https://example.test/v1/chat/completions",
+    headers: {},
+    providerName: "test",
+    model: "m",
+    messages: [],
+    max_tokens: 10,
+  })) {
+    events.push(event);
+  }
+
+  const deltas = events.filter((e) => e.type === "delta").map((e) => e.text).join("");
+  assert.equal(deltas, "Answer here");
+  const done = events.find((e) => e.type === "done");
+  assert.equal(done.content, "Answer here");
+});
+
 test("streamChatCompletion yields an error event on upstream failure", async (t) => {
   const originalFetch = globalThis.fetch;
   t.after(() => {

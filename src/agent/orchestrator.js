@@ -18,6 +18,7 @@ import { buildSystemPrompt } from "../prompts/index.js";
 import { wrapUntrustedContent } from "../prompts/injectionGuard.js";
 import { generateStream } from "../models/gateway.js";
 import { DEFAULT_MAX_OUTPUT_TOKENS } from "../models/hf.js";
+import { sanitizeMessages, sanitizeAssistantOutput } from "../models/outputSanitizer.js";
 import { generateFollowups } from "./followups.js";
 import { searchWeb } from "../search/index.js";
 import { formatSearchContext } from "../search/citations.js";
@@ -31,6 +32,14 @@ const MODE_TEMPERATURE = {
   research: 0.6,
   analyze: 0.6,
   code: 0.4,
+};
+
+const MODE_MAX_TOKENS = {
+  fast: 2048,
+  think: 4096,
+  research: 4096,
+  analyze: 4096,
+  code: 4096,
 };
 
 export async function* runOrchestration({
@@ -120,11 +129,11 @@ export async function* runOrchestration({
     ? `${envelope}\n\nUser question:\n${userMessage}`
     : userMessage;
 
-  const messages = [
+  const messages = sanitizeMessages([
     { role: "system", content: buildSystemPrompt(mode) },
     ...recentHistory.map(({ role, content }) => ({ role, content })),
     { role: "user", content: finalUserContent },
-  ];
+  ]);
 
   // --- Generation ---
   yield { type: "status", label: "Generating answer..." };
@@ -138,7 +147,7 @@ export async function* runOrchestration({
     privacyMode,
     messages,
     temperature: MODE_TEMPERATURE[mode] ?? 0.75,
-    maxTokens: DEFAULT_MAX_OUTPUT_TOKENS,
+    maxTokens: MODE_MAX_TOKENS[mode] ?? DEFAULT_MAX_OUTPUT_TOKENS,
     signal,
   });
 
@@ -148,11 +157,14 @@ export async function* runOrchestration({
       yield event;
     } else if (event.type === "done") {
       finalMeta = event;
+      if (event.content) fullContent = event.content;
     } else if (event.type === "error") {
       yield event;
       return;
     }
   }
+
+  fullContent = sanitizeAssistantOutput(fullContent);
 
   // --- Response validation ---
   if (!fullContent.trim()) {
