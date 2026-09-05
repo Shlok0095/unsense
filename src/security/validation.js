@@ -100,7 +100,12 @@ export function validateMemoryItems(items) {
 }
 
 export function validateThink(value) {
-  return Boolean(value);
+  if (value === true || value === 1) return true;
+  if (typeof value === "string") {
+    const v = value.trim().toLowerCase();
+    return v === "true" || v === "1" || v === "on";
+  }
+  return false;
 }
 
 const VALID_MODES = new Set(["fast", "think", "research", "analyze", "code"]);

@@ -87,6 +87,20 @@ function isThinkEnabled() {
 
 function setThinkEnabled(enabled) {
   thinkToggle.setAttribute("aria-pressed", enabled ? "true" : "false");
+  thinkToggle.title = enabled
+    ? "Think on — routes to deep model (code, research, analysis, reasoning)"
+    : "Think off — fast responses";
+}
+
+const THINK_MODE_LABELS = {
+  think: "Deep think",
+  research: "Research",
+  analyze: "Analysis",
+  code: "Code",
+};
+
+function thinkLabelForMode(mode) {
+  return THINK_MODE_LABELS[mode] || THINK_MODE_LABELS.think;
 }
 
 function setHasMessages(hasMessages) {
@@ -495,6 +509,13 @@ function createAssistantMessageEl(content, meta, index) {
   enhanceRenderedElement(body);
   wrap.appendChild(body);
 
+  if (meta?.thinkLabel) {
+    const thinkBadge = document.createElement("div");
+    thinkBadge.className = "think-mode-badge";
+    thinkBadge.textContent = `Think · ${meta.thinkLabel}`;
+    wrap.insertBefore(thinkBadge, body);
+  }
+
   const sourceCards = createSourceCards(meta?.sources || []);
   if (sourceCards) wrap.appendChild(sourceCards);
 
@@ -539,8 +560,21 @@ function createTypingRow(label = "Thinking...") {
     <span class="typing-dot animate-pulseSlow [animation-delay:150ms]"></span>
     <span class="typing-dot animate-pulseSlow [animation-delay:300ms]"></span>
     <span class="typing-label">${label}</span>
+    <span id="thinkModeChip" class="think-mode-chip hidden" aria-live="polite"></span>
   `;
   return row;
+}
+
+function setThinkModeChip(label) {
+  const chip = document.getElementById("thinkModeChip");
+  if (!chip) return;
+  if (!label) {
+    chip.classList.add("hidden");
+    chip.textContent = "";
+    return;
+  }
+  chip.textContent = label;
+  chip.classList.remove("hidden");
 }
 
 function setTypingLabel(label) {
@@ -676,7 +710,10 @@ async function sendMessage(rawMessage) {
   stopBtn.classList.remove("hidden");
   attachBtn.disabled = true;
   abortController = new AbortController();
-  showTyping(files.length ? "Extracting files..." : "Thinking...");
+  const thinkUsed = isThinkEnabled();
+  showTyping(
+    files.length ? "Extracting files..." : thinkUsed ? "Understanding your request..." : "Thinking..."
+  );
 
   // Snapshot of pre-turn state for a clean rollback on failure. Captured
   // before any mutation — for a temporary chat, persistMessages() mutates
@@ -700,7 +737,7 @@ async function sendMessage(rawMessage) {
       const extractData = await extractRes.json();
       if (!extractRes.ok) throw new Error(extractData.error || "File extraction failed.");
       newDocuments = extractData.documents || [];
-      showTyping("Thinking...");
+      showTyping(thinkUsed ? "Understanding your request..." : "Thinking...");
     }
 
     const sessionWithDocs = newDocuments.length
@@ -731,7 +768,6 @@ async function sendMessage(rawMessage) {
       throw new Error(data.error || `Request failed (${res.status})`);
     }
 
-    hideTyping();
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
@@ -772,6 +808,9 @@ async function sendMessage(rawMessage) {
       for (const event of events) {
         if (event.type === "status") {
           setTypingLabel(event.label);
+        } else if (event.type === "think_resolved") {
+          setTypingLabel(event.status || "Thinking deeply...");
+          setThinkModeChip(event.label || thinkLabelForMode(event.mode));
         } else if (event.type === "sources") {
           sourcesSoFar = event.sources;
         } else if (event.type === "delta") {
@@ -787,6 +826,7 @@ async function sendMessage(rawMessage) {
     }
 
     hideTyping();
+    setThinkModeChip(null);
     streamingEl?.remove();
 
     const finalContent = finalPayload?.content ?? assistantContent;
@@ -799,6 +839,8 @@ async function sendMessage(rawMessage) {
         usedFallback: finalPayload?.usedFallback || false,
         provider: finalPayload?.provider,
         model: finalPayload?.model,
+        thinkUsed: Boolean(finalPayload?.thinkUsed),
+        thinkLabel: finalPayload?.thinkUsed ? thinkLabelForMode(finalPayload?.mode) : null,
       },
     };
 
@@ -814,6 +856,7 @@ async function sendMessage(rawMessage) {
     });
   } catch (error) {
     hideTyping();
+    setThinkModeChip(null);
     streamingEl?.remove();
 
     if (error?.name === "AbortError") {

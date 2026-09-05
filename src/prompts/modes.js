@@ -48,11 +48,10 @@ present.
 ## Conclusion
 A concise takeaway.`,
 
-  think: `This question benefits from careful, thorough reasoning. Work
-through it step by step in your answer (not hidden reasoning — visible,
-useful explanation), covering the important nuances and edge cases, then
-give a clear final answer. Use structure only where it genuinely helps
-readability.`,
+  think: `This question benefits from careful, thorough reasoning (Think mode).
+Work through it step by step in your visible answer — show reasoning, important
+nuances, and edge cases before your conclusion. Depth matters more than brevity.
+Use structure only where it genuinely helps readability.`,
 };
 
 export function getModePrompt(mode) {

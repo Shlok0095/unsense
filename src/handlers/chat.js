@@ -1,6 +1,6 @@
 import { getToken, hasOllama } from "../config.js";
 import { runOrchestration } from "../agent/orchestrator.js";
-import { resolveResponseMode } from "../agent/modeResolver.js";
+import { resolveResponseMode, modeIntentLabel, modeStatusLabel } from "../agent/modeResolver.js";
 import { toUserFacingApiError } from "../errors.js";
 import { createRequestLogger } from "../observability/logger.js";
 import { checkRateLimit } from "../security/rateLimit.js";
@@ -82,14 +82,6 @@ export async function handleChat(req, res) {
     });
   }
 
-  const { mode: resolvedMode } = await resolveResponseMode({
-    think,
-    message: userText,
-    documentChunks,
-    token,
-    privacyMode,
-  });
-
   res.writeHead(200, {
     "Content-Type": "text/event-stream; charset=utf-8",
     "Cache-Control": "no-cache, no-transform",
@@ -97,16 +89,28 @@ export async function handleChat(req, res) {
     "X-Accel-Buffering": "no",
   });
 
-  // Aborts the upstream model call if the client disconnects mid-stream
-  // (e.g. the user hits "stop" or closes the tab). Deliberately listens on
-  // `res` (the response socket), not `req` — the request stream is already
-  // fully consumed by the JSON body parser by this point, and `req`'s
-  // "close"/"aborted" events can fire as soon as that read completes, long
-  // before the response is done, which would abort every request instantly.
-  // `res.on("close")` reflects the actual outbound connection to the client.
   const controller = new AbortController();
   const onClose = () => controller.abort();
   res.on("close", onClose);
+
+  let resolvedMode = "fast";
+  if (think) {
+    writeSseEvent(res, { type: "status", label: "Understanding your request..." });
+    const resolved = await resolveResponseMode({
+      think,
+      message: userText,
+      documentChunks,
+      token,
+      privacyMode,
+    });
+    resolvedMode = resolved.mode;
+    writeSseEvent(res, {
+      type: "think_resolved",
+      mode: resolvedMode,
+      label: modeIntentLabel(resolvedMode),
+      status: modeStatusLabel(resolvedMode),
+    });
+  }
 
   log.info("start", {
     think,

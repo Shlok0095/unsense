@@ -930,6 +930,24 @@
     @apply shrink-0;
   }
 
+  .think-mode-chip {
+    @apply ml-2 rounded-full border px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide;
+    color: var(--accent-primary);
+    background: var(--accent-glow);
+    border-color: rgba(216, 53, 96, 0.35);
+  }
+
+  .think-mode-chip.hidden {
+    display: none;
+  }
+
+  .think-mode-badge {
+    @apply mb-2 inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide;
+    color: var(--accent-secondary);
+    background: rgba(167, 180, 211, 0.08);
+    border-color: rgba(167, 180, 211, 0.22);
+  }
+
   /* ---------- Composer extras (legacy mode-select removed) ---------- */
 
   .btn-stop {

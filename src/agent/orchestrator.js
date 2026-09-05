@@ -24,7 +24,14 @@ import { formatSearchContext } from "../search/citations.js";
 import { retrieve } from "../rag/retriever.js";
 import { formatDocumentContext } from "../files/format.js";
 import { formatMemoryContext } from "../memory/format.js";
-import { modeStatusLabel } from "./modeResolver.js";
+
+const MODE_TEMPERATURE = {
+  fast: 0.75,
+  think: 0.55,
+  research: 0.6,
+  analyze: 0.6,
+  code: 0.4,
+};
 
 export async function* runOrchestration({
   token,
@@ -40,10 +47,6 @@ export async function* runOrchestration({
   webSearchEnabled = true,
   signal,
 }) {
-  if (thinkRequested) {
-    yield { type: "status", label: modeStatusLabel(mode) };
-  }
-
   const toolPlan = await planDeterministicTools(userMessage);
 
   // --- Web search (freshness) ---
@@ -134,7 +137,7 @@ export async function* runOrchestration({
     mode,
     privacyMode,
     messages,
-    temperature: mode === "code" ? 0.4 : 0.75,
+    temperature: MODE_TEMPERATURE[mode] ?? 0.75,
     maxTokens: DEFAULT_MAX_OUTPUT_TOKENS,
     signal,
   });
@@ -179,5 +182,6 @@ export async function* runOrchestration({
     contextSummary: summary,
     summarizedCount,
     mode,
+    thinkUsed: thinkRequested,
   };
 }
